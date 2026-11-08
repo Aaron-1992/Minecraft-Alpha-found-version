@@ -34,7 +34,7 @@ public final class AlphaDesktop extends Canvas implements Runnable {
     private double velocity=0,steps=0,autosave=0,time=0,sensitivity=.0024;
     private boolean grounded=false;
     private final VoxelRenderer.Hit hit=new VoxelRenderer.Hit();
-    private boolean targeted=false;
+    private boolean targeted=false,renderDirty=true;
     private record Button(int x,int y,int w,int h,String label,Runnable action) {}
 
     private AlphaDesktop(MinecraftAssets assets,OriginalAudio audio,Path saveDir) throws AWTException {
@@ -113,7 +113,7 @@ public final class AlphaDesktop extends Canvas implements Runnable {
                 catch(NumberFormatException e){seed=value[0].hashCode();}
                 world=new VoxelWorld(seed);
             }
-            worldFile=path;velocity=0;autosave=0;steps=0;save();capture();
+            worldFile=path;renderDirty=true;velocity=0;autosave=0;steps=0;save();capture();
         }catch(Exception e){notice="Could not load world. See console.";e.printStackTrace();world=null;screen="worlds";}
     }
     private void save(){if(world==null||worldFile==null)return;try{world.save(worldFile);}catch(IOException e){System.err.println("Save failed: "+e);notice="Save failed. Check disk space and permissions.";}}
@@ -167,6 +167,9 @@ public final class AlphaDesktop extends Canvas implements Runnable {
         g.setColor(new Color(0,0,0,155));g.fillRect(0,0,480,270);
     }
     private void draw(){
+        // Paused menus/inventory reuse the last world frame rather than raycasting
+        // another 129,600 pixels on every menu repaint/buffer restoration.
+        if(world!=null&&(screen.equals("game")||renderDirty)){renderer.render(world,time);renderDirty=false;}
         BufferStrategy buffer=getBufferStrategy();
         do{
             do{
@@ -178,7 +181,7 @@ public final class AlphaDesktop extends Canvas implements Runnable {
                     output.translate((getWidth()-480*scale)/2,(getHeight()-270*scale)/2);
                     output.scale(scale,scale);output.clipRect(0,0,480,270);
                     buttons.clear();
-                    if(world!=null){renderer.render(world,time);output.drawImage(renderer.frame,0,0,480,270,null);}
+                    if(world!=null){output.drawImage(renderer.frame,0,0,480,270,null);}
                     else background(output);
                     if(screen.equals("game"))hud(output);
                     else{
@@ -239,7 +242,7 @@ public final class AlphaDesktop extends Canvas implements Runnable {
             case "options" -> {
                 centered(g,"Options",30);
                 button(g,140,70,200,"Sound: "+(audio.enabled?"ON":"OFF"),()->audio.enabled=!audio.enabled);
-                button(g,140,100,200,"Render distance: "+renderer.distance,()->renderer.distance=renderer.distance==52?76:renderer.distance==76?32:52);
+                button(g,140,100,200,"Render distance: "+renderer.distance,()->{renderer.distance=renderer.distance==52?76:renderer.distance==76?32:52;renderDirty=true;});
                 button(g,140,130,200,"Sensitivity: "+(sensitivity==.0024?"Normal":sensitivity==.0012?"Low":"High"),()->sensitivity=sensitivity==.0024?.0012:sensitivity==.0012?.0036:.0024);
                 button(g,140,160,200,"Fullscreen: "+(windowMode.isFullscreen()?"ON":"OFF")+" (F11)",this::toggleFullscreen);
                 button(g,140,200,200,"Done",()->screen=previous);
@@ -280,6 +283,7 @@ public final class AlphaDesktop extends Canvas implements Runnable {
         Path mc=defaultMinecraft(),jar=null,sounds=null,saves=DesktopSetup.dataDirectory().resolve("saves");boolean check=false;
         boolean interactive=args.length==0&&!GraphicsEnvironment.isHeadless();
         try{
+            if(interactive&&OriginalEngineSetup.chooseOriginal())return;
             for(int i=0;i<args.length;i++){
                 switch(args[i]){
                     case "--minecraft-dir" -> mc=Path.of(args[++i]);
@@ -287,14 +291,15 @@ public final class AlphaDesktop extends Canvas implements Runnable {
                     case "--sounds" -> sounds=Path.of(args[++i]);
                     case "--saves" -> saves=Path.of(args[++i]);
                     case "--check-assets" -> check=true;
-                    case "--setup" -> interactive=true;
+                    case "--setup", "--prototype" -> interactive=true;
+                    case "--original" -> {OriginalEngineSetup.open();return;}
                     case "--check-runtime" -> {
                         boolean decoder=java.util.ServiceLoader.load(javax.sound.sampled.spi.AudioFileReader.class).stream()
                                 .anyMatch(provider->provider.type().getName().toLowerCase(Locale.ROOT).contains("vorbis"));
                         if(!decoder)throw new IOException("Bundled original Ogg decoder is missing");
                         System.out.println("Desktop runtime and original Ogg decoder are available.");return;
                     }
-                    case "--help" -> {System.out.println("Native Java desktop game.\njava -jar alpha-desktop-0.3.0.jar --client-jar /path/to/alpha.jar [--minecraft-dir /path/to/.minecraft] [--sounds /path/to/original/sound] [--saves /path/to/saves] [--check-assets]\nUse original legacy Minecraft assets from your own installation. Nothing is generated or downloaded.");return;}
+                    case "--help" -> {System.out.println("Native Java desktop game.\njava -jar alpha-desktop-0.4.0.jar --client-jar /path/to/alpha.jar [--minecraft-dir /path/to/.minecraft] [--sounds /path/to/original/sound] [--saves /path/to/saves] [--check-assets]\nUse --original to prepare an official-launcher installation with the real Alpha engine. Use --prototype for the custom sandbox.\nUse original legacy Minecraft assets from your own installation. Nothing is generated or downloaded.");return;}
                     default -> throw new IllegalArgumentException("Unknown option: "+args[i]);
                 }
             }

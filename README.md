@@ -1,124 +1,119 @@
-# Alpha — native Java desktop
+# Alpha Found — original engine setup + native sandbox
 
-A **desktop Java game**, not a website, WebView, browser game, or Java HTTP wrapper. The browser implementation has been removed.
+## Recommended: use the real Alpha engine
 
-**No generated assets:** no synthesized audio, AI images, replacement textures, custom texture atlas, generated logo, or substitute font. Surface pixels, menus, font, crosshair and hotbar are read from **original Minecraft files supplied by you**. Audio is playback of original Minecraft Ogg recordings, decoded with VorbisSPI. On double-click launch, missing assets open a native selection dialog rather than inventing a replacement. Command-line validation reports missing assets explicitly.
+The custom software renderer cannot reproduce all of Minecraft Alpha's behavior just by reusing its textures. This release adds **Original Alpha mode**, which prepares an isolated installation in your **existing official Minecraft Launcher**. The launcher then runs your installed, unmodified Alpha client, including its real renderer, world generation, menus, lighting, audio and gameplay. No game code is decompiled, extracted into this project, patched, or redistributed.
 
-Procedural world generation and rendering are game logic, not replacement media assets.
+**This mode is an original-game installation helper, not a modified Alpha client.** It does not add the custom sandbox's fog drift or new horror effects, and does not launch the game directly from our EXE. Performance and appearance are those of your original Alpha client, subject to its compatibility with your hardware/launcher. There are no benchmarked speedup claims for the original game.
 
-## Requirements
+### Download and play on Windows
 
-- A desktop computer running Windows, Linux or macOS, with a display, mouse, keyboard and audio output.
-- **JDK 17+** and **Maven 3.8+** to build.
-- Your own legacy Minecraft Alpha client JAR with `terrain.png`, the original GUI/icons, and the original font. Early Alpha’s root-level `default.png` is supported, as is the nested `font/default.png` layout. GUI/icons accept `gui/gui.png` / `gui/icons.png` or their root-level legacy locations.
-- Original legacy Minecraft sounds, including `step/grass*.ogg`, `step/stone*.ogg`, `step/wood*.ogg`, and `step/sand*.ogg`.
+1. Download **`AlphaDesktop-0.4.0.exe`** from [GitHub Releases](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), install it and open AlphaDesktop. Java for the setup/custom sandbox is bundled.
+2. Choose **Original Alpha (recommended)**.
+3. **Close Minecraft Launcher**, then confirm setup. Select your installed Alpha JAR if asked, such as `.minecraft/versions/a1.0.16/a1.0.16.jar`.
+4. Open your usual Minecraft Launcher → Java Edition → Installations. Select **Alpha Found - Original Alpha**, then **Play**.
 
-No Minecraft client, recordings or textures are bundled in this repository. The earlier modern texture extracts have also been removed. Assets are read locally and are not copied, rewritten, generated or downloaded by this application.
+The normal launcher manages your account, original-game libraries and its Java runtime. This tool never asks for credentials, changes login settings, downloads a game JAR, or bypasses ownership checks. You must have an installed `old_alpha` version with its matching version JSON; launch that version normally once before using this mode.
 
-The visual target is early Alpha, associated with the original Herobrine screenshot. **This is still an independent, bounded prototype, not an exact copy of Alpha's engine or an authentic lost release.** Use your own Alpha assets for the historical look; modern Minecraft JARs are not supported.
+**Unsigned preview:** the Windows installer is unsigned; Windows may show an unknown-publisher/SmartScreen warning. Verify the source and release checksums before deciding whether to run it. For a portable version, extract the whole `AlphaDesktop-0.4.0-windows-x64-portable.zip`, keeping `AlphaDesktop.exe`, `app` and `runtime` together.
 
-## Download a built release
+### What original-engine setup changes
 
-### Windows EXE (recommended)
+- Adds/updates only the `alpha-found-original-engine` installation entry in existing `launcher_profiles.json` and/or `launcher_profiles_microsoft_store.json` files. Other installations, selected profile, unknown properties and account-related metadata are preserved.
+- Makes an exact backup next to each changed profile file, using `.alpha-backup-<unique-id>`. Backups remain local. Profile writes are atomic where supported, and a detected concurrent change aborts the write. Keep the launcher closed during setup.
+- Uses `%APPDATA%\AlphaDesktop\original-engine\<version>` for isolated original-game options/worlds on Windows, or `~/.alpha-desktop/original-engine/<version>` elsewhere. It never converts or overwrites your custom-sandbox worlds or normal Minecraft worlds.
+- Creates conservative Alpha graphics options **only if the isolated options file does not already exist**. Existing options and user tuning in this tool's launcher entry are preserved.
+- Copies only **existing original** legacy recordings from local resources/asset indexes into the isolated game's resource folder, without changing them. Hashed asset objects are checked against their recorded SHA-1. No missing recordings, textures or sounds are generated or substituted. The normal launcher/client still determines resource compatibility; this helper cannot create resources absent from your installation.
 
-On the [GitHub Releases page](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), download **`AlphaDesktop-0.3.0.exe`**, double-click to install, then open **AlphaDesktop** from the Start menu. **Java is bundled; no Java installation, terminal, Maven or compilation is needed.** This is a Windows x64 installer, not a renamed JAR.
+The original client handles fullscreen (normally F11), render distance and graphics settings. We do not override its renderer, Java selection, or memory settings.
 
-For a portable build, download **`AlphaDesktop-0.3.0-windows-x64-portable.zip`**, extract the entire ZIP and run `AlphaDesktop/AlphaDesktop.exe`. Keep its `app` and `runtime` folders together with the EXE. The installer and portable build are unsigned previews; Windows may show an unknown-publisher/SmartScreen warning. Checksums are included in the release.
+### Undo
 
-On first launch, select your original Alpha client JAR in the file picker. If legacy sounds are not found, select the original sound folder containing `step/grass1.ogg`, etc. Paths are remembered in `%APPDATA%\AlphaDesktop\assets.properties`. No command-line setup is required. Original Minecraft assets are **not** included or generated.
+With the launcher closed, remove the **Alpha Found - Original Alpha** installation through the launcher or restore the corresponding `.alpha-backup-*` file. The separate `original-engine/<version>` folder can be removed if you no longer want its worlds. **Do not delete it if you want to retain those saves.** This helper does not remove it automatically.
 
-### Linux/macOS or standalone Java
+## Custom sandbox (fallback)
 
-The cross-platform desktop ZIP and standalone executable JAR remain available. These downloads require an installed **Java 17+** runtime. Launch without arguments for the same original-asset setup dialogs, or pass the explicit asset paths below. `--setup` opens setup again to change saved paths.
+Choose **Custom sandbox** at startup, or run the standalone JAR with `--prototype`. This remains an independent, bounded Java/Java2D voxel prototype, not the original Minecraft engine or an exact Alpha port. No browser, WebView or HTTP server is involved.
 
-### Release verification
+Original Minecraft assets are required: a legacy JAR containing `terrain.png`, GUI/icons and `default.png` or `font/default.png`, plus original legacy `step/grass*.ogg`, `step/stone*.ogg`, `step/wood*.ogg` and `step/sand*.ogg` recordings. Native dialogs select and remember these paths. Missing assets are reported, never replaced by generated media.
 
-GitHub Actions runs 14 engine tests, builds the shaded JAR and checks the decoder, then creates a real Windows EXE and a private Java runtime using `jpackage`. It smoke-tests both the bundled Java and actual `AlphaDesktop.exe --check-runtime`, verifies the installer PE header and publishes a release only after both Linux and Windows jobs succeed. CI also opens a real AWT window under Xvfb and tests entering fullscreen, restoring window bounds/decorations, and repeated toggles/buffer recreation. This does not cover physical multi-monitor Windows behavior, original-asset visual parity, installer interaction or audible output.
+Original title textures (`title/mclogo.png`, `gui/logo.png`, `logo.png`) and cloud masks (`environment/clouds.png`, `clouds.png`) are loaded when present. If absent, clouds are omitted and the title uses the original bitmap font. All block surfaces, font, hotbar, crosshair and recordings come from original assets supplied locally; no generated replacement textures, fonts, logos or synthesized effects are bundled.
 
-## Build and launch
+### Fallback performance changes in 0.4.0
 
-```sh
-mvn clean package
-java -jar target/alpha-desktop-0.3.0.jar \
-  --client-jar "/path/to/your/alpha-client.jar" \
-  --minecraft-dir "/path/to/.minecraft" \
-  --sounds "/path/to/original/sound"
-```
+- Precomputed normalized camera rays instead of per-pixel square roots every frame.
+- Original cloud pixels cached outside the render loop.
+- Transparent texels continue the same DDA grid walk rather than allocating another hit object and marching in approximate 0.08-unit steps. This also avoids skipping whole foliage volumes behind a transparent texel.
+- Paused/menu/inventory screens reuse the last rendered world frame; buffer restoration does not rerun the world renderer.
 
-Windows PowerShell: enter the `java -jar ...` command on one line. `build.bat` and `run.bat` are also included. On macOS/Linux, use `./build.sh` and `./run.sh` with the same arguments.
+These remove identifiable overhead. End-to-end FPS improvements have **not** been measured on a user's original assets/hardware, so no percentage or FPS promise is made.
 
-The executable JAR includes the Ogg decoder and runs without Maven after building. It does **not** include Minecraft assets. Do not run the individual classes or an unshaded JAR if you want Ogg decoding; use the packaged executable JAR.
-
-### Finding local assets
-
-If installed by your launcher, the client may be at:
-
-```text
-.minecraft/versions/a1.0.16/a1.0.16.jar
-```
-
-That path is detected automatically under the standard Minecraft directory. You can always select a different legacy client with `--client-jar`. Launchers may use other version names or directories. Installing an old client does not necessarily install its old sound resources.
-
-Original sound files can be read from:
-
-- `--sounds /path/to/sound`, containing `step/grass1.ogg`, etc.
-- `.minecraft/resources/sound/` or `newsound/`
-- `.minecraft/assets/virtual/legacy/sound/` or `sounds/`
-- `.minecraft/assets/objects/`, resolved through the launcher's local asset indexes for legacy `sound/step/...`, `sounds/step/...`, or `newsound/step/...` names.
-
-Use original legacy recordings, not a newly generated sound pack. The app does not silently map modern sounds to old ones. If your installation has no legacy recordings, supply them from your own existing backup or installation. No proprietary asset downloader or account bypass is included.
-
-Configuration is stored in `assets.properties` in the same per-user data directory (never inside Program Files). Delete that file or run with `--setup` to change asset paths.
-
-To check original texture loading, Ogg decoding and desktop audio availability without opening the game:
-
-```sh
-java -jar target/alpha-desktop-0.3.0.jar --client-jar "/path/to/alpha.jar" --sounds "/path/to/sound" --check-assets
-```
-
-This prints the exact local source paths. It validates file structure and decoding, **not historical authenticity or ownership**.
-
-## Playing
-
-Select **Singleplayer**, then one of five world slots. An empty slot asks for a seed; leave it blank for a new world. Existing slots load from disk.
+### Fallback controls
 
 | Input | Action |
 |---|---|
 | W A S D / arrows | Move |
 | Mouse | Look |
 | Space | Jump / swim upward |
-| Shift | Sneak slowly with ledge protection |
-| F11 | Toggle borderless fullscreen on the current monitor |
-| Left click | Break targeted block |
-| Right click | Place selected block |
+| Shift | Slow movement with ledge protection |
+| Left / right click | Break / place selected block |
 | 1–9 / mouse wheel | Select block |
-| E | Open/close block inventory |
-| Escape | Pause/resume, release mouse |
+| E | Inventory |
+| Escape | Pause / resume |
+| F11 or Options | Borderless fullscreen, restore previous window |
 
-Worlds are stored in `%APPDATA%\AlphaDesktop\saves\World1.dat` through `World5.dat` on Windows, or `~/.alpha-desktop/saves/` on Linux/macOS, compressed and saved every 15 seconds, on pause, and on quit. `--saves /path/to/folder` changes the location. Saves use a custom format, not original Minecraft save compatibility. Writes use an atomic replacement where supported.
+Fallback worlds use `%APPDATA%\AlphaDesktop\saves\World1.dat` through `World5.dat` (or `~/.alpha-desktop/saves/`). They save every 15 seconds, on pause and on quit. Saves are a custom format, **not** original Minecraft saves. The original-engine mode has its own separate directory and real Minecraft save format.
 
-## Scope and atmosphere
+The fallback has 128 × 128 × 48 worlds, static water, trees, nine selectable blocks, collision, gravity, mining/building, inventory and options. It lacks infinite terrain, survival, crafting, mobs, dynamic light propagation and multiplayer. Rendering remains a 480 × 270 native CPU raycaster, with aspect-correct scaling/letterboxing; it is not the original GPU renderer. The foreground block uses original terrain faces, not a fabricated skin.
 
-The game includes seeded 128 × 128 × 48 worlds, trees, layered terrain, beaches, water, collision, gravity, jumping, swimming, block breaking/placing, nine selectable blocks, inventory, options and persistent worlds.
+### Local asset paths for the fallback
 
-Original title textures (`title/mclogo.png`, `gui/logo.png`, `logo.png`) and cloud masks (`environment/clouds.png`, `clouds.png`) are loaded directly from the client when present. If absent, clouds are omitted and the title uses the already-required original bitmap font. No replacement logo or cloud image is generated. Proportional glyph advances are measured from the original font pixels. Hotbar/inventory icons are projected textured blocks, and targeted blocks have a wireframe selection outline.
+Legacy sounds are looked up through local `assets/indexes`/`assets/objects`, `.minecraft/resources/sound` or `newsound`, and `assets/virtual/legacy/sound`, `sounds` or `newsound`. An explicit sound folder can also be selected. Modern recordings are not silently mapped to legacy names.
 
-The restrained atmosphere uses solitude, limited visibility and barely perceptible continuous fog variation. No jumpscares, horror-labelled menus, entities, chat messages, generated sound effects or scripted encounters.
+Setup stores selected asset paths in the per-user `assets.properties`; original-engine setup remembers its client location separately in `original-engine.properties`. No account credentials are stored by the app.
 
-Rendering is a **native Java CPU voxel raycaster** presented through AWT/Java2D at a nearest-neighbor-scaled 480 × 270 internal resolution. Fullscreen uses the current monitor without changing its display mode; the 16:9 viewport is letterboxed on other aspect ratios so blocks and GUI pixels are not stretched. F11 and Options both toggle fullscreen and restore the previous window bounds. It is not the original Minecraft renderer. Water is static; original animated water/lava are not reproduced. Transparent surfaces are approximate. There is no infinite terrain, crafting, survival, mob simulation, dynamic lighting or multiplayer. Desktop performance varies by CPU. The selected block is drawn in the foreground using the original terrain faces; no hand or character skin is fabricated.
+## Build / CLI
 
-## Tests and verification
+Source builds require **JDK 17+ and Maven 3.8+**:
+
+```sh
+mvn clean package
+java -jar target/alpha-desktop-0.4.0.jar
+```
+
+`build.bat` / `build.sh` also build the shaded JAR with its Ogg decoder. Cross-platform JAR downloads require Java 17+; the Windows EXE bundles Java for this app. The official launcher separately manages the runtime for the original game.
+
+```sh
+# Prepare the real Alpha installation (native dialogs):
+java -jar target/alpha-desktop-0.4.0.jar --original
+
+# Custom sandbox, with native asset dialogs:
+java -jar target/alpha-desktop-0.4.0.jar --prototype
+
+# Custom sandbox with explicit local asset paths:
+java -jar target/alpha-desktop-0.4.0.jar \
+  --client-jar "/path/to/alpha.jar" \
+  --minecraft-dir "/path/to/.minecraft" \
+  --sounds "/path/to/original/sound"
+```
+
+`--setup` changes fallback asset selections. `--saves` overrides fallback save location. `--check-assets` validates fallback images/Ogg decoding/audio output, and `--check-runtime` checks the bundled decoder without loading game assets. `run.bat` / `run.sh` work with extracted JAR distributions too.
+
+## Tests and release verification
 
 ```sh
 ./test.sh
-# Windows:
-test.bat
+# Windows: test.bat
 ```
 
-14 headless tests cover seeds, terrain/water/trees, collision and edits, compressed save round-trips, corrupt-save rejection, DDA targeting and placement normals, water targeting, original atlas coordinates and explicit rejection of missing assets. Lookup regression tests use metadata-only ZIP entries to check root/nested font paths, GUI/icon paths and missing-path diagnostics. No fake texture pixels or audio recordings are generated.
+There are **25 headless tests**: 14 engine/asset-path tests and 11 launcher/optimization tests. They check original-version metadata layout, safe launcher JSON round-trips, preservation of other profiles/settings, exact backups, immutable client files, rejection of malformed files, resource-path safety and precomputed-ray equivalence. Fixtures contain configuration/metadata only, not proprietary game code, fabricated texture pixels or recordings.
 
-The Java sources were compiled and all 14 tests passed in the development sandbox. The full game window and audio output could not be exercised in the development sandbox: this sandbox has no desktop display, audio device or user-owned Alpha client/resources. Executable Maven packaging, decoder verification, native Windows EXE generation and a bundled-runtime/launcher smoke test run in GitHub Actions before a release is published; inspect the release workflow for the outcome. Interactive desktop/audio testing still requires a real desktop and original Minecraft assets.
+CI also runs **three real AWT fullscreen tests** under Xvfb, builds the executable, verifies Ogg SPI packaging and creates the Windows EXE/installer. It smoke-tests the generated Windows launcher and bundled Java before publishing.
 
-## Rights
+**Not verified here:** launching a real original Alpha client through a user's official launcher, original-asset visual parity, audible playback, full gameplay, installation UI and physical Windows multi-monitor behavior. Those need a real installed client, launcher, original resources, audio output and desktop. A metadata-only inspection is not proof that a particular original client will run successfully.
 
-Unofficial fan prototype; not affiliated with Mojang or Microsoft. Minecraft names, textures, fonts, recordings and other assets belong to their respective owners. Supplying local assets does not grant redistribution rights. The repository contains no Minecraft asset license or game JAR. VorbisSPI and its transitive decoder dependencies have their own upstream licenses; consult their Maven artifacts before redistributing a packaged build.
+## Rights / scope
+
+Unofficial fan project; not affiliated with Mojang or Microsoft. Minecraft code, assets and marks belong to their respective owners. No Minecraft JAR, source code, textures or recordings are distributed with the release. Using a local installation does not grant redistribution rights. The real-engine mode runs the user's unmodified client through their launcher; it does not transplant copyrighted classes into the custom engine.
+
+The custom sandbox retains restrained fog variation and solitude without jumpscares, entities or chat events. **Original-engine mode is unmodified vanilla Alpha, not a new horror mod.** VorbisSPI and its dependencies have their own upstream licenses; their original distributions and available sources accompany the packaged app.

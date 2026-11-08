@@ -2,18 +2,24 @@ import java.awt.image.*;
 
 /** Native CPU voxel renderer. All surface pixels come from the original terrain atlas. */
 final class VoxelRenderer {
+    private final CameraRays rays=new CameraRays(WIDTH,HEIGHT,70);
     static final int WIDTH=480, HEIGHT=270;
     final BufferedImage frame=new BufferedImage(WIDTH,HEIGHT,BufferedImage.TYPE_INT_RGB);
     final int[] pixels=((DataBufferInt)frame.getRaster().getDataBuffer()).getData();
     final int[] atlas;
-    private BufferedImage clouds;
+    private int[] cloudPixels;
+    private int cloudWidth,cloudHeight;
     int distance=52;
     static final class Hit {
-        int x,y,z,axis,normal,block;
+        int x,y,z,axis,normal,block,pixel;
         double t,u,v;
     }
     VoxelRenderer(BufferedImage texture) { atlas=texture.getRGB(0,0,256,256,null,0,256); }
-    void setClouds(BufferedImage original){clouds=original;}
+    void setClouds(BufferedImage original){
+        if(original==null){cloudPixels=null;return;}
+        cloudWidth=original.getWidth();cloudHeight=original.getHeight();
+        cloudPixels=original.getRGB(0,0,cloudWidth,cloudHeight,null,0,cloudWidth);
+    }
     static int tile(int b,int axis,int normal) {
         return switch(b) {
             case 1 -> axis==1?(normal>0?0:2):3;
@@ -23,6 +29,9 @@ final class VoxelRenderer {
         };
     }
     static boolean trace(VoxelWorld w,double ox,double oy,double oz,double dx,double dy,double dz,double max,boolean skipWater,Hit h) {
+        return traceSurface(w,ox,oy,oz,dx,dy,dz,max,skipWater,null,h);
+    }
+    private static boolean traceSurface(VoxelWorld w,double ox,double oy,double oz,double dx,double dy,double dz,double max,boolean skipWater,int[] atlas,Hit h){
         int x=(int)Math.floor(ox),y=(int)Math.floor(oy),z=(int)Math.floor(oz);
         int sx=dx>=0?1:-1,sy=dy>=0?1:-1,sz=dz>=0?1:-1;
         double ax=dx==0?Double.POSITIVE_INFINITY:Math.abs(1/dx),ay=dy==0?Double.POSITIVE_INFINITY:Math.abs(1/dy),az=dz==0?Double.POSITIVE_INFINITY:Math.abs(1/dz);
@@ -34,10 +43,20 @@ final class VoxelRenderer {
             int b=w.get(x,y,z);
             if(b!=0 && !(skipWater && b==10)) {
                 double px=ox+dx*(t+.000001),py=oy+dy*(t+.000001),pz=oz+dz*(t+.000001);
-                h.x=x;h.y=y;h.z=z;h.axis=axis;h.normal=normal;h.block=b;h.t=t;
-                h.u=axis==0?pz-Math.floor(pz):px-Math.floor(px);
-                h.v=axis==1?pz-Math.floor(pz):1-(py-Math.floor(py));
-                return true;
+                double u=axis==0?pz-Math.floor(pz):px-Math.floor(px);
+                double v=axis==1?pz-Math.floor(pz):1-(py-Math.floor(py));
+                int pixel=0;
+                if(atlas!=null){
+                    int tile=tile(b,axis,normal);
+                    int tu=Math.min(15,(int)(u*16)),tv=Math.min(15,(int)(v*16));
+                    pixel=atlas[(tile/16*16+tv)*256+tile%16*16+tu];
+                }
+                if(atlas==null||(pixel>>>24)>=100||b==10){
+                    h.x=x;h.y=y;h.z=z;h.axis=axis;h.normal=normal;h.block=b;h.t=t;
+                    h.u=u;h.v=v;h.pixel=pixel;return true;
+                }
+                // Transparent texels continue the SAME grid walk: no allocations,
+                // no approximate .08-unit marching and no skipping whole trees.
             }
             if(tx<ty && tx<tz){t=tx;tx+=ax;x+=sx;axis=0;normal=-sx;}
             else if(ty<tz){t=ty;ty+=ay;y+=sy;axis=1;normal=-sy;}
@@ -47,48 +66,30 @@ final class VoxelRenderer {
     }
     void render(VoxelWorld w,double seconds) {
         double sy=Math.sin(w.yaw),cy=Math.cos(w.yaw),sp=Math.sin(w.pitch),cp=Math.cos(w.pitch);
-        double focal=1/Math.tan(Math.toRadians(70)/2),aspect=WIDTH/(double)HEIGHT;
         int fog=0xB8CFE5;
         double limit=distance+Math.sin(seconds*.012)*1.2;
         Hit h=new Hit();
         for(int yy=0;yy<HEIGHT;yy++) {
-            double vy=(1-2*(yy+.5)/HEIGHT)/focal;
             for(int xx=0;xx<WIDTH;xx++) {
-                double vx=(2*(xx+.5)/WIDTH-1)*aspect/focal;
-                double dx,dy,dz;
-                // Correct camera basis: up=(-sin(yaw)*sin(pitch), cos(pitch), -cos(yaw)*sin(pitch)).
-                dx=vx*cy-sy*cp+vy*sy*sp;
-                dy=sp+vy*cp;
-                dz=-vx*sy-cy*cp+vy*cy*sp;
-                double length=Math.sqrt(dx*dx+dy*dy+dz*dz);dx/=length;dy/=length;dz/=length;
+                int ray=yy*WIDTH+xx;
+                double right=rays.right[ray],up=rays.up[ray],forward=rays.forward[ray];
+                double dx=right*cy-sy*cp*forward+up*sy*sp;
+                double dy=sp*forward+up*cp;
+                double dz=-right*sy-cy*cp*forward+up*cy*sp;
                 double horizon=Math.max(0,Math.min(1,dy*1.8));
                 int rgb=blend(fog,0x78A7FF,horizon);
-                if(clouds!=null && dy>.005){
+                if(cloudPixels!=null && dy>.005){
                     double t=(42-w.y)/dy;
                     if(t>0 && t<260){
-                        int cx=Math.floorMod((int)Math.floor((w.x+dx*t+seconds*.35)/12),clouds.getWidth());
-                        int cz=Math.floorMod((int)Math.floor((w.z+dz*t)/12),clouds.getHeight());
-                        int cloud=clouds.getRGB(cx,cz);
+                        int cx=Math.floorMod((int)Math.floor((w.x+dx*t+seconds*.35)/12),cloudWidth);
+                        int cz=Math.floorMod((int)Math.floor((w.z+dz*t)/12),cloudHeight);
+                        int cloud=cloudPixels[cz*cloudWidth+cx];
                         if((cloud>>>24)>100 && (cloud&0xffffff)>0x808080)
                             rgb=blend(rgb,cloud,Math.max(0,1-t/300));
                     }
                 }
-                if(trace(w,w.x,w.y,w.z,dx,dy,dz,limit,false,h)) {
-                    int tile=tile(h.block,h.axis,h.normal);
-                    int u=Math.min(15,(int)(h.u*16)),v=Math.min(15,(int)(h.v*16));
-                    int pixel=atlas[(tile/16*16+v)*256+tile%16*16+u];
-                    // Cutout surfaces reveal the world behind them, using the original alpha channel.
-                    if((pixel>>>24)<100 && h.block!=10) {
-                        Hit behind=new Hit();
-                        double exit=.002;
-                        while(exit<3 && w.get((int)Math.floor(w.x+dx*(h.t+exit)),(int)Math.floor(w.y+dy*(h.t+exit)),(int)Math.floor(w.z+dz*(h.t+exit)))==h.block) exit+=.08;
-                        double offset=h.t+exit;
-                        if(trace(w,w.x+dx*offset,w.y+dy*offset,w.z+dz*offset,dx,dy,dz,Math.max(0,limit-offset),false,behind)) {
-                            behind.t+=offset;h=behind;tile=tile(h.block,h.axis,h.normal);
-                            u=Math.min(15,(int)(h.u*16));v=Math.min(15,(int)(h.v*16));
-                            pixel=atlas[(tile/16*16+v)*256+tile%16*16+u];
-                        } else pixel=0xff000000|fog;
-                    }
+                if(traceSurface(w,w.x,w.y,w.z,dx,dy,dz,limit,false,atlas,h)) {
+                    int pixel=h.pixel;
                     double shade=h.axis==1?(h.normal>0?1:.5):h.axis==0?.7:.83;
                     double fade=Math.max(0,Math.min(1,(h.t-limit*.36)/(limit*.64)));
                     int r=(int)(((pixel>>16)&255)*shade),g=(int)(((pixel>>8)&255)*shade),b=(int)((pixel&255)*shade);

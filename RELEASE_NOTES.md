@@ -1,43 +1,39 @@
-## Windows EXE preview — 0.3.0
+## 0.4.0 — real Alpha engine option + fallback renderer cleanup
 
-### New in 0.3.0
+**Download `AlphaDesktop-0.4.0.exe` for Windows x64.** Java for this application is bundled. The installer is unsigned; check the release source/checksums before deciding whether to run it.
 
-- **F11 fullscreen**, also available in Options. Borderless fullscreen fills the current monitor, restores your previous window on exit and recreates drawing buffers safely.
-- Aspect-correct presentation with letterboxing on non-16:9 displays, instead of stretching blocks and GUI textures.
-- Sharper 480 × 270 internal rendering, brighter Alpha-style sky/distance fog, and drifting clouds sampled from the original client cloud mask when available.
-- Original client title texture when available; otherwise uses the original Minecraft bitmap font. Proportional font spacing is measured from the original glyph pixels.
-- Textured 3D block icons, a held-block foreground view, and a targeted-block wireframe outline.
-- Shift now slows movement with ledge protection instead of acting as a modern sprint key.
-- Existing root-level Alpha font support and saved worlds are preserved. No generated replacement assets or original game code are bundled.
-- CI runs 14 engine/asset-path tests plus three real-window fullscreen tests under Xvfb.
+### Use the actual Alpha game
 
-### Windows: no Java installation required
+At startup, choose **Original Alpha (recommended)**. Close Minecraft Launcher when prompted. Setup uses your installed, unmodified `old_alpha` client to add **Alpha Found - Original Alpha** to your existing launcher installations.
 
-**Download `AlphaDesktop-0.3.0.exe` and double-click it to install.** Launch **AlphaDesktop** from the Start menu or desktop shortcut. Java is bundled privately with the application.
+Then **open your usual Minecraft Launcher → Java Edition → Installations → Alpha Found - Original Alpha → Play**. The game uses its actual renderer, terrain, lighting, menus, graphics settings and gameplay instead of the custom raycaster.
 
-Alternatively, download `AlphaDesktop-0.3.0-windows-x64-portable.zip`, extract the **whole ZIP**, then double-click `AlphaDesktop/AlphaDesktop.exe`. Keep the `app` and `runtime` folders next to the EXE; it is not a single-file portable executable.
+- Your official launcher handles its normal account, libraries and original-game runtime.
+- Client code is not extracted, decompiled, patched or redistributed.
+- Other launcher installations and account-related settings are preserved; changed profile files receive exact local backups.
+- Original-game worlds/options use a separate per-version directory. Existing Minecraft/custom-sandbox worlds are not converted or overwritten.
+- Existing original legacy recordings can be copied unmodified from local resources/indexed objects; missing media is not fabricated.
 
-On first launch, native file-selection dialogs ask for your **original legacy Alpha client JAR** and, if not found automatically, the **original sound folder** containing `step/grass1.ogg`, etc. Your selections are remembered. No command-line arguments are needed.
+**This is a launcher installation helper, not a direct original-game executable or new horror mod.** You still click Play in your existing launcher. Original-engine mode is vanilla Alpha: the custom sandbox's atmosphere effects are not injected into it. Compatibility depends on your installed Alpha client and launcher; a real original-client launch could not be tested in CI. This mode does not claim a performance improvement over vanilla Alpha—it uses vanilla Alpha.
 
-The app stores configuration and saves in `%APPDATA%\AlphaDesktop`, not the installation directory. It does not require administrator access to save games.
+### Custom sandbox remains available
 
-**This preview is unsigned.** Windows may show an unknown-publisher or SmartScreen warning. Verify the publisher/source and the provided SHA-256 checksum before deciding whether to run it.
+Choose **Custom sandbox** to use the previous independent prototype, including F11 fullscreen and original asset loading. Identified overhead was removed:
 
-### Other downloads
+- Camera rays are normalized once, outside the frame loop.
+- Cloud pixels are cached.
+- Transparent texture holes continue the existing DDA traversal instead of allocating more hit objects and tiny-step marching/skipping foliage.
+- Paused menus/inventory reuse the last world frame instead of rerendering the world.
 
-- `alpha-desktop-0.3.0.jar`: cross-platform executable; requires an installed Java 17+ runtime.
-- `alpha-desktop-0.3.0.zip`: cross-platform JAR, scripts, documentation and decoder dependency distributions.
-- `SHA256SUMS.txt` and `SHA256SUMS-windows.txt`: download integrity checksums.
+No end-to-end FPS percentage is claimed without testing original assets on real hardware. No generated replacement media or synthesized sound effects are included.
 
-### Included
+### Downloads / verification
 
-Native desktop voxel sandbox, seeded terrain, walking/jumping/swimming, block breaking and placing, inventory, options and local world saves. Textures are read from original Minecraft files and original Ogg recordings are played through the bundled decoder. No generated replacement media, synthesized sound effects, jumpscares or chat messages.
+- `AlphaDesktop-0.4.0.exe`: Windows installer with private Java runtime for the setup/custom app.
+- `AlphaDesktop-0.4.0-windows-x64-portable.zip`: extract the whole ZIP and run `AlphaDesktop/AlphaDesktop.exe`; keep `app` and `runtime` alongside it.
+- `alpha-desktop-0.4.0.jar` / `.zip`: cross-platform app; requires Java 17+.
+- SHA-256 checksum files accompany the downloads.
 
-### Important limitations
+CI runs **25 headless tests + 3 AWT fullscreen tests**, verifies the executable/decoder packaging and smoke-tests the generated Windows launcher and bundled runtime. Those tests do not verify the user's original client launch, visual parity, audible playback or complete gameplay.
 
-- **Original Minecraft assets are still required and are NOT bundled.** The EXE bundles Java and the decoder, not Minecraft. Missing assets are not substituted.
-- Windows packages target **64-bit Windows 10/11**.
-- This is an early independent prototype, not an exact copy of Minecraft Alpha. No survival, infinite terrain, mobs, crafting or multiplayer.
-- CI runs 14 engine tests and three AWT fullscreen lifecycle tests, verifies decoder packaging, creates the Windows app image, executes the actual generated `AlphaDesktop.exe --check-runtime`, and verifies the installer is a Windows PE executable. Interactive rendering, file selection, installation and audible playback still require desktop testing; the EXE smoke test does not cover those.
-
-See README for controls, original-asset locations and build instructions. Original audio-decoder dependency distributions and available source archives accompany the app for their upstream licensing information.
+Original Minecraft assets and client code are **not bundled**. See README for setup details, profile backups/undo, separate save locations, controls and known limits.

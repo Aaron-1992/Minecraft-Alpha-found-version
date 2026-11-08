@@ -7,7 +7,7 @@ import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.3.0'
+VERSION = '0.4.0'
 JAR = ROOT / 'target' / f'alpha-desktop-{VERSION}.jar'
 
 
@@ -16,7 +16,7 @@ def verify():
         raise SystemExit(f'Maven executable missing: {JAR}')
     with zipfile.ZipFile(JAR) as jar:
         names = set(jar.namelist())
-        required = {'AlphaDesktop.class', 'DesktopSetup.class', 'WindowMode.class', 'AlphaPresentation.class', 'OriginalAudio.class', 'VoxelWorld.class',
+        required = {'AlphaDesktop.class', 'OriginalEngineSetup.class', 'OriginalAlphaInstallation.class', 'LauncherJson.class', 'CameraRays.class', 'DesktopSetup.class', 'WindowMode.class', 'AlphaPresentation.class', 'OriginalAudio.class', 'VoxelWorld.class',
                     'javazoom/spi/vorbis/sampled/file/VorbisAudioFileReader.class',
                     'META-INF/services/javax.sound.sampled.spi.AudioFileReader',
                     'META-INF/services/javax.sound.sampled.spi.FormatConversionProvider'}
