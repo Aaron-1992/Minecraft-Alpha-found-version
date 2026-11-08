@@ -6,6 +6,7 @@ on:
       - arena/dd82e13d-minecraft-alpha-found-version
     paths:
       - 'src/**'
+      - 'agent/**'
       - 'tests/**'
       - 'pom.xml'
       - 'scripts/**'
@@ -22,7 +23,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  VERSION: '0.4.0'
+  VERSION: '0.5.0'
 
 jobs:
   build:
@@ -39,6 +40,30 @@ jobs:
         run: ./test.sh
       - name: Test real AWT fullscreen transitions
         run: xvfb-run -a java -Djava.awt.headless=false -cp .test-classes FullscreenTests
+      - name: Build and test optional Java 8 runtime mod
+        shell: bash
+        run: |
+          set +e
+          mvn -B -ntp -f agent/pom.xml clean package dependency:copy-dependencies dependency:sources > agent-build.log 2>&1
+          RESULT=$?
+          cat agent-build.log
+          if [ "$RESULT" -ne 0 ]; then
+            python3 -c 'import pathlib; print("::error::" + pathlib.Path("agent-build.log").read_text()[-10000:].replace("\n", "%0A"))'
+            exit "$RESULT"
+          fi
+      - name: Smoke-test live instrumentation on Java 17
+        run: java "-javaagent:agent/target/alpha-ambient-agent-${VERSION}.jar=alpha/ambient/AgentSmoke\$Chunk" -cp agent/target/test-classes alpha.ambient.AgentSmoke
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '8'
+      - name: Smoke-test live instrumentation on legacy Java 8
+        run: java "-javaagent:agent/target/alpha-ambient-agent-${VERSION}.jar=alpha/ambient/AgentSmoke\$Chunk" -cp agent/target/test-classes alpha.ambient.AgentSmoke
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
       - name: Build executable JAR with original-audio decoder
         run: mvn -B -ntp clean package dependency:copy-dependencies dependency:sources
       - name: Verify executable entry point and decoder registration

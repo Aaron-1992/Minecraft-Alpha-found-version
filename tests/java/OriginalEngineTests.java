@@ -79,7 +79,31 @@ public final class OriginalEngineTests {
                 check(Math.abs(rays.right[i]-right/length)<1e-12&&Math.abs(rays.up[i]-up/length)<1e-12,"optimized ray changed projection");
             }
         });
+        test("runtime mod inspection recognizes structural layout without executing client code",()->{
+            try(InputStream in=OriginalEngineTests.class.getResourceAsStream("/OriginalEngineTests$SignatureChunk.class")){
+                check(AlphaAgentSupport.isChunkShape(in),"valid structural signature missed");
+            }
+            try(InputStream in=OriginalEngineTests.class.getResourceAsStream("/OriginalEngineTests.class")){
+                check(!AlphaAgentSupport.isChunkShape(in),"unrelated class accepted");
+            }
+        });
+        test("agent arguments preserve other JVM options and agents",()->{
+            String arguments=AlphaAgentSupport.arguments("-Xmx1G -javaagent:\"C:/other tools/other.jar\"",Path.of("C:/Alpha Desktop/mods/alpha-ambient-agent-0.5.0.jar"),"obf/Chunk");
+            check(arguments.contains("-Xmx1G")&&arguments.contains("other tools/other.jar"),"user options changed");
+            check(arguments.endsWith("\"=obf/Chunk"),"mod path not quoted");
+        });
+        test("agent updates replace only this project's old argument",()->{
+            String old="-Xmx2G -javaagent:\"C:/old path/alpha-ambient-agent-0.1.0.jar\"=old/Chunk";
+            String updated=AlphaAgentSupport.arguments(old,Path.of("new/alpha-ambient-agent-0.5.0.jar"),"new/Chunk");
+            check(!updated.contains("0.1.0")&&updated.contains("-Xmx2G")&&updated.endsWith("=new/Chunk"),"stale hook not replaced");
+            check(updated.indexOf("-javaagent:")==updated.lastIndexOf("-javaagent:"),"hook duplicated");
+        });
         System.out.println(passed+" original-engine/optimization tests passed.");
+    }
+    public static class SignatureChunk {
+        public byte[] blocks;
+        public SignatureChunk(Object world,byte[] blocks,int x,int z){this.blocks=blocks;}
+        public void initialize(){}
     }
     private static Path installed(Path root,String type)throws IOException{
         Path folder=root.resolve("versions/a1.0.16");Files.createDirectories(folder);

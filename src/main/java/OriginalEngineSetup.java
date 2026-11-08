@@ -28,36 +28,41 @@ final class OriginalEngineSetup {
             if(Files.isRegularFile(old))try(InputStream in=Files.newInputStream(old)){saved.load(in);}
         }
         Path candidate=Path.of(saved.getProperty("client",AlphaDesktop.defaultMinecraft().resolve("versions/a1.0.16/a1.0.16.jar").toString()));
-        final int[] confirm={JOptionPane.CANCEL_OPTION};
-        SwingUtilities.invokeAndWait(()->confirm[0]=JOptionPane.showConfirmDialog(null,
-                "Close Minecraft Launcher before continuing so it will not overwrite installation settings.\n\n"
-                +"This adds '"+OriginalAlphaInstallation.PROFILE_NAME+"' using your installed Alpha client.\n"
-                +"Other installations and accounts are preserved; profile files are backed up first.\n"
-                +"Original-engine worlds use their own folder, separate from the custom sandbox.\n\n"
-                +"This mode is unmodified original Alpha. It does not add the prototype's atmosphere changes.\n\nContinue?",
-                "Prepare original Alpha engine",JOptionPane.OK_CANCEL_OPTION,JOptionPane.INFORMATION_MESSAGE));
-        if(confirm[0]!=JOptionPane.OK_OPTION)return;
+        final int[] confirm={-1};
+        SwingUtilities.invokeAndWait(()->confirm[0]=JOptionPane.showOptionDialog(null,
+                "Close Minecraft Launcher before continuing.\n\n"
+                +"Optional environmental changes run inside the original Alpha client.\n"
+                +"No replacement assets, jump scares, chat events or loud sound effects.\n"
+                +"They use a NEW separate installation/game folder; use a new world.\n"
+                +"Terrain changes saved there persist even if the mod is later disabled.\n\n"
+                +"This is experimental: structural checks cannot prove compatibility with every Alpha JAR.\n"
+                +"Original JARs and other installations are not modified; profile files are backed up.\n\n"
+                +"Choose the optional mod or keep vanilla Alpha:",
+                "Prepare Alpha installation",JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,
+                new String[]{"Install environmental changes","Vanilla Alpha","Cancel"},"Vanilla Alpha"));
+        if(confirm[0]<0||confirm[0]>1)return;
+        boolean ambient=confirm[0]==0;
         while(true){
             if(!Files.isRegularFile(candidate)){
                 candidate=chooseJar(candidate.getParent());if(candidate==null)return;
             }
             try{
                 OriginalAlphaInstallation.Client client=OriginalAlphaInstallation.inspect(candidate);
-                Path game=DesktopSetup.dataDirectory().resolve("original-engine").resolve(client.version());
-                OriginalAlphaInstallation.Prepared prepared=OriginalAlphaInstallation.prepare(client,game);
+                Path game=DesktopSetup.dataDirectory().resolve(ambient?"ambient-engine":"original-engine").resolve(client.version());
+                OriginalAlphaInstallation.Prepared prepared=OriginalAlphaInstallation.prepare(client,game,ambient);
                 saved.setProperty("client",candidate.toAbsolutePath().toString());
                 Files.createDirectories(config.getParent());
                 try(OutputStream output=Files.newOutputStream(config)){saved.store(output,"Original Alpha installation location only");}
-                String report="Installation ready: "+OriginalAlphaInstallation.PROFILE_NAME+"\n\n"
+                String report="Installation ready: "+prepared.profileName()+"\n\n"
                         +"1. Open your usual Minecraft Launcher and select Java Edition.\n"
-                        +"2. Under Installations, select '"+OriginalAlphaInstallation.PROFILE_NAME+"'.\n"
+                        +"2. Under Installations, select '"+prepared.profileName()+"'.\n"
                         +"3. Click Play. The launcher uses your normal account and the real Alpha engine.\n\n"
                         +"Version: "+prepared.version()+"\n"
                         +"Separate game directory: "+prepared.gameDirectory()+"\n"
                         +"Existing original recordings copied: "+prepared.recordings()+"\n"
                         +"Launcher profile backups are next to the original profile files.\n\n"
                         +"F11 and graphics settings are handled by the original client, not the prototype.\n"
-                        +"No game classes were extracted, decompiled, patched or redistributed.";
+                        +(ambient?"Experimental agent enabled: only in-memory hooks, no changes to the original client JAR.\nUse a new world in this separate installation.":"Vanilla installation; optional hooks are not enabled.");
                 SwingUtilities.invokeAndWait(()->JOptionPane.showMessageDialog(null,report,"Original Alpha ready",JOptionPane.INFORMATION_MESSAGE));
                 return;
             }catch(IOException e){

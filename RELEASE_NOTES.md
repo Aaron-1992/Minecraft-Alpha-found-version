@@ -1,39 +1,36 @@
-## 0.4.0 — real Alpha engine option + fallback renderer cleanup
+## 0.5.0 — optional original-engine environmental mod
 
-**Download `AlphaDesktop-0.4.0.exe` for Windows x64.** Java for this application is bundled. The installer is unsigned; check the release source/checksums before deciding whether to run it.
+**Download `AlphaDesktop-0.5.0.exe` for Windows x64.** Java for the setup/custom app is bundled. The installer is unsigned; verify its source/checksum before deciding whether to run it.
 
-### Use the actual Alpha game
+### Enable it
 
-At startup, choose **Original Alpha (recommended)**. Close Minecraft Launcher when prompted. Setup uses your installed, unmodified `old_alpha` client to add **Alpha Found - Original Alpha** to your existing launcher installations.
+1. Open AlphaDesktop and choose **Original Alpha (recommended)**.
+2. Close Minecraft Launcher, then choose **Install environmental changes**.
+3. Select your installed Alpha client if asked. Setup checks its chunk class layout and refuses the optional mod if the layout is ambiguous or unsupported.
+4. Open your normal launcher → Java Edition → Installations → **Alpha Found** → Play.
+5. **Create a new world.** Do not import a valued save into this experimental installation.
 
-Then **open your usual Minecraft Launcher → Java Edition → Installations → Alpha Found - Original Alpha → Play**. The game uses its actual renderer, terrain, lighting, menus, graphics settings and gameplay instead of the custom raycaster.
+The mod uses a **new isolated game directory** under `%APPDATA%\AlphaDesktop\ambient-engine\<version>`. The existing vanilla profile **Alpha Found - Original Alpha**, original JAR and other worlds remain separate.
 
-- Your official launcher handles its normal account, libraries and original-game runtime.
-- Client code is not extracted, decompiled, patched or redistributed.
-- Other launcher installations and account-related settings are preserved; changed profile files receive exact local backups.
-- Original-game worlds/options use a separate per-version directory. Existing Minecraft/custom-sandbox worlds are not converted or overwritten.
-- Existing original legacy recordings can be copied unmodified from local resources/indexed objects; missing media is not fabricated.
+### The intended feeling
 
-**This is a launcher installation helper, not a direct original-game executable or new horror mod.** You still click Play in your existing launcher. Original-engine mode is vanilla Alpha: the custom sandbox's atmosphere effects are not injected into it. Compatibility depends on your installed Alpha client and launcher; a real original-client launch could not be tested in CI. This mode does not claim a performance improvement over vanilla Alpha—it uses vanilla Alpha.
+An environmental blend of early Minecraft folklore and lost-version stories—not a literal implementation of every creepypasta or a verified historical account. The game itself has no horror-labelled menu, story exposition, chat messages, jump scares, loud stingers, fake crashes or replacement assets. Changes are deliberately sparse; immediate sightings are not guaranteed.
 
-### Custom sandbox remains available
+The agent adds only original-block environmental patterns and a very slow, bounded fog drift. It does not add pursuing entities, custom skins, white-eye textures, gore, new audio, text signs or scripted attacks.
 
-Choose **Custom sandbox** to use the previous independent prototype, including F11 fullscreen and original asset loading. Identified overhead was removed:
+### Technical / safety notes
 
-- Camera rays are normalized once, outside the frame loop.
-- Cloud pixels are cached.
-- Transparent texture holes continue the existing DDA traversal instead of allocating more hit objects and tiny-step marching/skipping foliage.
-- Paused menus/inventory reuse the last world frame instead of rerendering the world.
+- A bundled **Java 8-compatible runtime agent** modifies a structurally inspected chunk class and LWJGL fog calls **in memory**. The original client JAR is never rewritten or distributed.
+- It uses only original numeric block IDs and the game's existing rendering. No media is generated or bundled.
+- Rare chunk candidates are coordinate-deterministic, skip the central origin area and refuse chunks containing non-natural/manufactured block IDs. Each chunk object receives at most one mutation attempt after natural terrain is present. These checks do **not** prove a chunk has never been edited by a player.
+- Block changes that the original client saves **persist**. Removing the agent does not revert them. Keep backups and use a new world.
+- Structural compatibility is not full runtime compatibility. The actual user-owned Alpha client, its chunk lifecycle, its lighting updates and visible results have **not been integration-tested here**. Optional transformation failures leave the original class unmodified and report to launcher logs, never game chat.
+- This is neither universal across all Alpha builds nor a claim of support for every old creepypasta. Vanilla setup remains available separately; the custom sandbox does not receive these hooks.
 
-No end-to-end FPS percentage is claimed without testing original assets on real hardware. No generated replacement media or synthesized sound effects are included.
+CI tests the mutation policies, transformed fixture classes, live Java-agent loading on Java 8 and 17, native app/profile safety, fullscreen, embedded-agent packaging and the Windows launcher. Fixtures are this project's own code/terrain arrays—not Minecraft bytecode or generated textures/sounds.
 
-### Downloads / verification
+### Disabling
 
-- `AlphaDesktop-0.4.0.exe`: Windows installer with private Java runtime for the setup/custom app.
-- `AlphaDesktop-0.4.0-windows-x64-portable.zip`: extract the whole ZIP and run `AlphaDesktop/AlphaDesktop.exe`; keep `app` and `runtime` alongside it.
-- `alpha-desktop-0.4.0.jar` / `.zip`: cross-platform app; requires Java 17+.
-- SHA-256 checksum files accompany the downloads.
+Close Minecraft/Launcher and remove the `-javaagent:...alpha-ambient-agent-0.5.0.jar=...` argument from **Alpha Found → Edit → More Options → JVM arguments**, or use the separate vanilla installation. Restore a pre-mod world backup to undo terrain changes. Profile-file backups remain next to the original launcher profile files.
 
-CI runs **25 headless tests + 3 AWT fullscreen tests**, verifies the executable/decoder packaging and smoke-tests the generated Windows launcher and bundled runtime. Those tests do not verify the user's original client launch, visual parity, audible playback or complete gameplay.
-
-Original Minecraft assets and client code are **not bundled**. See README for setup details, profile backups/undo, separate save locations, controls and known limits.
+Downloads include the Windows installer/portable ZIP, cross-platform JAR distribution and SHA-256 checksums. Original Minecraft client/assets are not bundled. See README for spoiler details, build instructions and limitations.
