@@ -1,0 +1,64 @@
+name: Build desktop release
+
+on:
+  push:
+    branches:
+      - arena/dd82e13d-minecraft-alpha-found-version
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pom.xml'
+      - 'scripts/package-release.py'
+      - 'run.*'
+      - 'test.*'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: alpha-desktop-release
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERSION: '0.2.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Test native engine
+        run: ./test.sh
+      - name: Build executable JAR with original-audio decoder
+        run: mvn -B -ntp clean package dependency:copy-dependencies dependency:sources
+      - name: Verify executable entry point and decoder registration
+        run: |
+          java -Djava.awt.headless=true -jar target/alpha-desktop-${VERSION}.jar --help
+          python3 scripts/package-release.py --verify
+      - name: Package desktop distribution
+        run: python3 scripts/package-release.py
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-desktop-${{ env.VERSION }}
+          path: release/*
+          if-no-files-found: error
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${VERSION}-desktop.${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Alpha Desktop ${VERSION} — preview ${GITHUB_RUN_NUMBER}" \
+            --notes-file RELEASE_NOTES.md \
+            release/*
