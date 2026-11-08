@@ -70,6 +70,42 @@ public final class DesktopTests {
                 catch(IOException expected){check(expected.getMessage().contains("terrain.png"),"unclear asset error");}
             }finally{Files.deleteIfExists(p);}
         });
+        test("Alpha root font path is accepted",()->{
+            assertImagePath(new String[]{"default.png"}, "default.png", "default.png", "font/default.png");
+        });
+        test("nested legacy font path remains supported",()->{
+            assertImagePath(new String[]{"font/default.png"}, "font/default.png", "default.png", "font/default.png");
+        });
+        test("root Alpha font takes priority when both are present",()->{
+            assertImagePath(new String[]{"font/default.png", "default.png"}, "default.png", "default.png", "font/default.png");
+        });
+        test("legacy GUI and icons paths are resolved",()->{
+            assertImagePath(new String[]{"gui.png"}, "gui.png", "gui/gui.png", "gui.png");
+            assertImagePath(new String[]{"icons.png"}, "icons.png", "gui/icons.png", "icons.png");
+            assertImagePath(new String[]{"gui/gui.png"}, "gui/gui.png", "gui/gui.png", "gui.png");
+        });
+        test("missing font error lists both supported locations",()->{
+            Path p=Files.createTempFile("alpha-path-test-", ".zip");
+            try {
+                try(ZipOutputStream zip=new ZipOutputStream(Files.newOutputStream(p))){zip.finish();}
+                try(ZipFile zip=new ZipFile(p.toFile())){
+                    try{MinecraftAssets.resolveImageEntry(zip,"default.png","font/default.png");throw new AssertionError("missing entry accepted");}
+                    catch(IOException e){check(e.getMessage().contains("default.png, font/default.png"),"missing lookup paths in error");}
+                }
+            }finally{Files.deleteIfExists(p);}
+        });
         System.out.println(passed+" desktop tests passed.");
+    }
+    // Metadata-only ZIP entries exercise lookup, not fabricated texture pixels.
+    private static void assertImagePath(String[] entries,String expected,String... candidates)throws Exception{
+        Path p=Files.createTempFile("alpha-path-test-", ".zip");
+        try{
+            try(ZipOutputStream zip=new ZipOutputStream(Files.newOutputStream(p))){
+                for(String entry:entries){zip.putNextEntry(new ZipEntry(entry));zip.closeEntry();}
+            }
+            try(ZipFile zip=new ZipFile(p.toFile())){
+                check(MinecraftAssets.resolveImageEntry(zip,candidates).getName().equals(expected),"incorrect original asset path");
+            }
+        }finally{Files.deleteIfExists(p);}
     }
 }

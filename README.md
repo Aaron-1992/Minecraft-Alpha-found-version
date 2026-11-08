@@ -10,7 +10,7 @@ Procedural world generation and rendering are game logic, not replacement media 
 
 - A desktop computer running Windows, Linux or macOS, with a display, mouse, keyboard and audio output.
 - **JDK 17+** and **Maven 3.8+** to build.
-- Your own legacy Minecraft Alpha client JAR with `terrain.png`, `gui/gui.png`, `gui/icons.png`, and `font/default.png`.
+- Your own legacy Minecraft Alpha client JAR with `terrain.png`, the original GUI/icons, and the original font. Early Alpha’s root-level `default.png` is supported, as is the nested `font/default.png` layout. GUI/icons accept `gui/gui.png` / `gui/icons.png` or their root-level legacy locations.
 - Original legacy Minecraft sounds, including `step/grass*.ogg`, `step/stone*.ogg`, `step/wood*.ogg`, and `step/sand*.ogg`.
 
 No Minecraft client, recordings or textures are bundled in this repository. The earlier modern texture extracts have also been removed. Assets are read locally and are not copied, rewritten, generated or downloaded by this application.
@@ -21,9 +21,9 @@ The visual target is early Alpha, associated with the original Herobrine screens
 
 ### Windows EXE (recommended)
 
-On the [GitHub Releases page](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), download **`AlphaDesktop-0.2.1.exe`**, double-click to install, then open **AlphaDesktop** from the Start menu. **Java is bundled; no Java installation, terminal, Maven or compilation is needed.** This is a Windows x64 installer, not a renamed JAR.
+On the [GitHub Releases page](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), download **`AlphaDesktop-0.2.2.exe`**, double-click to install, then open **AlphaDesktop** from the Start menu. **Java is bundled; no Java installation, terminal, Maven or compilation is needed.** This is a Windows x64 installer, not a renamed JAR.
 
-For a portable build, download **`AlphaDesktop-0.2.1-windows-x64-portable.zip`**, extract the entire ZIP and run `AlphaDesktop/AlphaDesktop.exe`. Keep its `app` and `runtime` folders together with the EXE. The installer and portable build are unsigned previews; Windows may show an unknown-publisher/SmartScreen warning. Checksums are included in the release.
+For a portable build, download **`AlphaDesktop-0.2.2-windows-x64-portable.zip`**, extract the entire ZIP and run `AlphaDesktop/AlphaDesktop.exe`. Keep its `app` and `runtime` folders together with the EXE. The installer and portable build are unsigned previews; Windows may show an unknown-publisher/SmartScreen warning. Checksums are included in the release.
 
 On first launch, select your original Alpha client JAR in the file picker. If legacy sounds are not found, select the original sound folder containing `step/grass1.ogg`, etc. Paths are remembered in `%APPDATA%\AlphaDesktop\assets.properties`. No command-line setup is required. Original Minecraft assets are **not** included or generated.
 
@@ -33,13 +33,13 @@ The cross-platform desktop ZIP and standalone executable JAR remain available. T
 
 ### Release verification
 
-GitHub Actions runs nine engine tests, builds the shaded JAR and checks the decoder, then creates a real Windows EXE and a private Java runtime using `jpackage`. It smoke-tests both the bundled Java and actual `AlphaDesktop.exe --check-runtime`, verifies the installer PE header and publishes a release only after both Linux and Windows jobs succeed. This is not a full interactive graphics, installer or sound-output test.
+GitHub Actions runs 14 engine tests, builds the shaded JAR and checks the decoder, then creates a real Windows EXE and a private Java runtime using `jpackage`. It smoke-tests both the bundled Java and actual `AlphaDesktop.exe --check-runtime`, verifies the installer PE header and publishes a release only after both Linux and Windows jobs succeed. This is not a full interactive graphics, installer or sound-output test.
 
 ## Build and launch
 
 ```sh
 mvn clean package
-java -jar target/alpha-desktop-0.2.1.jar \
+java -jar target/alpha-desktop-0.2.2.jar \
   --client-jar "/path/to/your/alpha-client.jar" \
   --minecraft-dir "/path/to/.minecraft" \
   --sounds "/path/to/original/sound"
@@ -62,9 +62,9 @@ That path is detected automatically under the standard Minecraft directory. You 
 Original sound files can be read from:
 
 - `--sounds /path/to/sound`, containing `step/grass1.ogg`, etc.
-- `.minecraft/resources/sound/`
+- `.minecraft/resources/sound/` or `newsound/`
 - `.minecraft/assets/virtual/legacy/sound/` or `sounds/`
-- `.minecraft/assets/objects/`, resolved through the launcher's local asset indexes for legacy `sound/step/...` or `sounds/step/...` names.
+- `.minecraft/assets/objects/`, resolved through the launcher's local asset indexes for legacy `sound/step/...`, `sounds/step/...`, or `newsound/step/...` names.
 
 Use original legacy recordings, not a newly generated sound pack. The app does not silently map modern sounds to old ones. If your installation has no legacy recordings, supply them from your own existing backup or installation. No proprietary asset downloader or account bypass is included.
 
@@ -73,7 +73,7 @@ Configuration is stored in `assets.properties` in the same per-user data directo
 To check original texture loading, Ogg decoding and desktop audio availability without opening the game:
 
 ```sh
-java -jar target/alpha-desktop-0.2.1.jar --client-jar "/path/to/alpha.jar" --sounds "/path/to/sound" --check-assets
+java -jar target/alpha-desktop-0.2.2.jar --client-jar "/path/to/alpha.jar" --sounds "/path/to/sound" --check-assets
 ```
 
 This prints the exact local source paths. It validates file structure and decoding, **not historical authenticity or ownership**.
@@ -112,9 +112,9 @@ Rendering is a **native Java CPU voxel raycaster** presented through AWT/Java2D 
 test.bat
 ```
 
-Nine headless tests cover seeds, terrain/water/trees, collision and edits, compressed save round-trips, corrupt-save rejection, DDA targeting and placement normals, water targeting, original atlas coordinates and explicit rejection of missing assets. No fake texture or sound fixtures are generated.
+14 headless tests cover seeds, terrain/water/trees, collision and edits, compressed save round-trips, corrupt-save rejection, DDA targeting and placement normals, water targeting, original atlas coordinates and explicit rejection of missing assets. Lookup regression tests use metadata-only ZIP entries to check root/nested font paths, GUI/icon paths and missing-path diagnostics. No fake texture pixels or audio recordings are generated.
 
-The Java sources were compiled and all nine tests passed in the development sandbox. The native desktop window and audio output could not be exercised here: this sandbox has no desktop display, audio device or user-owned Alpha client/resources. Executable Maven packaging, decoder verification, native Windows EXE generation and a bundled-runtime/launcher smoke test run in GitHub Actions before a release is published; inspect the release workflow for the outcome. Interactive desktop/audio testing still requires a real desktop and original Minecraft assets.
+The Java sources were compiled and all 14 tests passed in the development sandbox. The native desktop window and audio output could not be exercised here: this sandbox has no desktop display, audio device or user-owned Alpha client/resources. Executable Maven packaging, decoder verification, native Windows EXE generation and a bundled-runtime/launcher smoke test run in GitHub Actions before a release is published; inspect the release workflow for the outcome. Interactive desktop/audio testing still requires a real desktop and original Minecraft assets.
 
 ## Rights
 

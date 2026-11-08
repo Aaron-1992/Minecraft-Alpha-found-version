@@ -24,10 +24,11 @@ final class MinecraftAssets implements AutoCloseable {
         this.resources = resources;
         client = new ZipFile(jar.toFile());
         try {
-            terrain = image("terrain.png", 256, 256);
-            gui = image("gui/gui.png", 256, 128);
-            icons = image("gui/icons.png", 256, 16);
-            font = image("font/default.png", 128, 128);
+            terrain = image(256, 256, "terrain.png");
+            gui = image(256, 128, "gui/gui.png", "gui.png");
+            icons = image(256, 16, "gui/icons.png", "icons.png");
+            // Early Alpha keeps the original font at the archive root.
+            font = image(128, 128, "default.png", "font/default.png");
             indexSounds();
             for (String surface : List.of("grass", "stone", "wood", "sand")) {
                 List<Path> files = new ArrayList<>();
@@ -43,13 +44,21 @@ final class MinecraftAssets implements AutoCloseable {
             throw e;
         }
     }
-    private BufferedImage image(String name, int width, int minHeight) throws IOException {
-        ZipEntry entry = client.getEntry(name);
-        if (entry == null) throw new IOException("Missing original Minecraft asset: " + name + ".\nSelect a legacy Alpha client JAR, not a modern client. No replacement textures are included.");
+    /** Resolves original legacy paths only; never substitutes or generates media. */
+    static ZipEntry resolveImageEntry(ZipFile archive, String... names) throws IOException {
+        for (String name : names) {
+            ZipEntry entry = archive.getEntry(name);
+            if (entry != null && !entry.isDirectory()) return entry;
+        }
+        throw new IOException("Missing original Minecraft asset. Tried: " + String.join(", ", names)
+                + ".\nThe selected archive does not contain the required legacy asset. No replacement texture will be generated.");
+    }
+    private BufferedImage image(int width, int minHeight, String... names) throws IOException {
+        ZipEntry entry = resolveImageEntry(client, names);
         BufferedImage result;
         try (InputStream in = client.getInputStream(entry)) { result = ImageIO.read(in); }
         if (result == null || result.getWidth() != width || result.getHeight() < minHeight)
-            throw new IOException("Unsupported legacy texture dimensions: " + name);
+            throw new IOException("Unsupported legacy texture dimensions: " + entry.getName());
         return result;
     }
     private void indexSounds() throws IOException {
@@ -67,15 +76,17 @@ final class MinecraftAssets implements AutoCloseable {
         }
     }
     private Path soundFile(String name) {
-        for (String prefix : List.of("sound/", "sounds/", "minecraft/sound/", "minecraft/sounds/")) {
+        for (String prefix : List.of("sound/", "sounds/", "newsound/", "minecraft/sound/", "minecraft/sounds/")) {
             Path p = indexed.get(prefix + name);
             if (p != null) return p;
         }
         List<Path> roots = new ArrayList<>();
-        if (resources != null) roots.addAll(List.of(resources, resources.resolve("sound"), resources.resolve("sounds")));
+        if (resources != null) roots.addAll(List.of(resources, resources.resolve("sound"), resources.resolve("sounds"), resources.resolve("newsound")));
         roots.add(minecraft.resolve("resources/sound"));
+        roots.add(minecraft.resolve("resources/newsound"));
         roots.add(minecraft.resolve("assets/virtual/legacy/sound"));
         roots.add(minecraft.resolve("assets/virtual/legacy/sounds"));
+        roots.add(minecraft.resolve("assets/virtual/legacy/newsound"));
         for (Path root : roots) {
             Path p = root.resolve(name);
             if (Files.isRegularFile(p)) return p;
