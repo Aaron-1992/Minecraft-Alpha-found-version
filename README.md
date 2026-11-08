@@ -21,9 +21,9 @@ The visual target is early Alpha, associated with the original Herobrine screens
 
 ### Windows EXE (recommended)
 
-On the [GitHub Releases page](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), download **`AlphaDesktop-0.2.2.exe`**, double-click to install, then open **AlphaDesktop** from the Start menu. **Java is bundled; no Java installation, terminal, Maven or compilation is needed.** This is a Windows x64 installer, not a renamed JAR.
+On the [GitHub Releases page](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), download **`AlphaDesktop-0.3.0.exe`**, double-click to install, then open **AlphaDesktop** from the Start menu. **Java is bundled; no Java installation, terminal, Maven or compilation is needed.** This is a Windows x64 installer, not a renamed JAR.
 
-For a portable build, download **`AlphaDesktop-0.2.2-windows-x64-portable.zip`**, extract the entire ZIP and run `AlphaDesktop/AlphaDesktop.exe`. Keep its `app` and `runtime` folders together with the EXE. The installer and portable build are unsigned previews; Windows may show an unknown-publisher/SmartScreen warning. Checksums are included in the release.
+For a portable build, download **`AlphaDesktop-0.3.0-windows-x64-portable.zip`**, extract the entire ZIP and run `AlphaDesktop/AlphaDesktop.exe`. Keep its `app` and `runtime` folders together with the EXE. The installer and portable build are unsigned previews; Windows may show an unknown-publisher/SmartScreen warning. Checksums are included in the release.
 
 On first launch, select your original Alpha client JAR in the file picker. If legacy sounds are not found, select the original sound folder containing `step/grass1.ogg`, etc. Paths are remembered in `%APPDATA%\AlphaDesktop\assets.properties`. No command-line setup is required. Original Minecraft assets are **not** included or generated.
 
@@ -33,13 +33,13 @@ The cross-platform desktop ZIP and standalone executable JAR remain available. T
 
 ### Release verification
 
-GitHub Actions runs 14 engine tests, builds the shaded JAR and checks the decoder, then creates a real Windows EXE and a private Java runtime using `jpackage`. It smoke-tests both the bundled Java and actual `AlphaDesktop.exe --check-runtime`, verifies the installer PE header and publishes a release only after both Linux and Windows jobs succeed. This is not a full interactive graphics, installer or sound-output test.
+GitHub Actions runs 14 engine tests, builds the shaded JAR and checks the decoder, then creates a real Windows EXE and a private Java runtime using `jpackage`. It smoke-tests both the bundled Java and actual `AlphaDesktop.exe --check-runtime`, verifies the installer PE header and publishes a release only after both Linux and Windows jobs succeed. CI also opens a real AWT window under Xvfb and tests entering fullscreen, restoring window bounds/decorations, and repeated toggles/buffer recreation. This does not cover physical multi-monitor Windows behavior, original-asset visual parity, installer interaction or audible output.
 
 ## Build and launch
 
 ```sh
 mvn clean package
-java -jar target/alpha-desktop-0.2.2.jar \
+java -jar target/alpha-desktop-0.3.0.jar \
   --client-jar "/path/to/your/alpha-client.jar" \
   --minecraft-dir "/path/to/.minecraft" \
   --sounds "/path/to/original/sound"
@@ -73,7 +73,7 @@ Configuration is stored in `assets.properties` in the same per-user data directo
 To check original texture loading, Ogg decoding and desktop audio availability without opening the game:
 
 ```sh
-java -jar target/alpha-desktop-0.2.2.jar --client-jar "/path/to/alpha.jar" --sounds "/path/to/sound" --check-assets
+java -jar target/alpha-desktop-0.3.0.jar --client-jar "/path/to/alpha.jar" --sounds "/path/to/sound" --check-assets
 ```
 
 This prints the exact local source paths. It validates file structure and decoding, **not historical authenticity or ownership**.
@@ -87,7 +87,8 @@ Select **Singleplayer**, then one of five world slots. An empty slot asks for a 
 | W A S D / arrows | Move |
 | Mouse | Look |
 | Space | Jump / swim upward |
-| Shift | Move faster |
+| Shift | Sneak slowly with ledge protection |
+| F11 | Toggle borderless fullscreen on the current monitor |
 | Left click | Break targeted block |
 | Right click | Place selected block |
 | 1–9 / mouse wheel | Select block |
@@ -100,9 +101,11 @@ Worlds are stored in `%APPDATA%\AlphaDesktop\saves\World1.dat` through `World5.d
 
 The game includes seeded 128 × 128 × 48 worlds, trees, layered terrain, beaches, water, collision, gravity, jumping, swimming, block breaking/placing, nine selectable blocks, inventory, options and persistent worlds.
 
+Original title textures (`title/mclogo.png`, `gui/logo.png`, `logo.png`) and cloud masks (`environment/clouds.png`, `clouds.png`) are loaded directly from the client when present. If absent, clouds are omitted and the title uses the already-required original bitmap font. No replacement logo or cloud image is generated. Proportional glyph advances are measured from the original font pixels. Hotbar/inventory icons are projected textured blocks, and targeted blocks have a wireframe selection outline.
+
 The restrained atmosphere uses solitude, limited visibility and barely perceptible continuous fog variation. No jumpscares, horror-labelled menus, entities, chat messages, generated sound effects or scripted encounters.
 
-Rendering is a **native Java CPU voxel raycaster** presented through AWT/Java2D at a nearest-neighbor-scaled 320 × 180 internal resolution. It is not the original Minecraft renderer. Water is static; original animated water/lava are not reproduced. Transparent surfaces are approximate. There is no infinite terrain, crafting, survival, mob simulation, dynamic lighting or multiplayer. Desktop performance varies by CPU. No hand or character skin is fabricated.
+Rendering is a **native Java CPU voxel raycaster** presented through AWT/Java2D at a nearest-neighbor-scaled 480 × 270 internal resolution. Fullscreen uses the current monitor without changing its display mode; the 16:9 viewport is letterboxed on other aspect ratios so blocks and GUI pixels are not stretched. F11 and Options both toggle fullscreen and restore the previous window bounds. It is not the original Minecraft renderer. Water is static; original animated water/lava are not reproduced. Transparent surfaces are approximate. There is no infinite terrain, crafting, survival, mob simulation, dynamic lighting or multiplayer. Desktop performance varies by CPU. The selected block is drawn in the foreground using the original terrain faces; no hand or character skin is fabricated.
 
 ## Tests and verification
 
@@ -114,7 +117,7 @@ test.bat
 
 14 headless tests cover seeds, terrain/water/trees, collision and edits, compressed save round-trips, corrupt-save rejection, DDA targeting and placement normals, water targeting, original atlas coordinates and explicit rejection of missing assets. Lookup regression tests use metadata-only ZIP entries to check root/nested font paths, GUI/icon paths and missing-path diagnostics. No fake texture pixels or audio recordings are generated.
 
-The Java sources were compiled and all 14 tests passed in the development sandbox. The native desktop window and audio output could not be exercised here: this sandbox has no desktop display, audio device or user-owned Alpha client/resources. Executable Maven packaging, decoder verification, native Windows EXE generation and a bundled-runtime/launcher smoke test run in GitHub Actions before a release is published; inspect the release workflow for the outcome. Interactive desktop/audio testing still requires a real desktop and original Minecraft assets.
+The Java sources were compiled and all 14 tests passed in the development sandbox. The full game window and audio output could not be exercised in the development sandbox: this sandbox has no desktop display, audio device or user-owned Alpha client/resources. Executable Maven packaging, decoder verification, native Windows EXE generation and a bundled-runtime/launcher smoke test run in GitHub Actions before a release is published; inspect the release workflow for the outcome. Interactive desktop/audio testing still requires a real desktop and original Minecraft assets.
 
 ## Rights
 

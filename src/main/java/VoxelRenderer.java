@@ -2,16 +2,18 @@ import java.awt.image.*;
 
 /** Native CPU voxel renderer. All surface pixels come from the original terrain atlas. */
 final class VoxelRenderer {
-    static final int WIDTH=320, HEIGHT=180;
+    static final int WIDTH=480, HEIGHT=270;
     final BufferedImage frame=new BufferedImage(WIDTH,HEIGHT,BufferedImage.TYPE_INT_RGB);
     final int[] pixels=((DataBufferInt)frame.getRaster().getDataBuffer()).getData();
     final int[] atlas;
+    private BufferedImage clouds;
     int distance=52;
     static final class Hit {
         int x,y,z,axis,normal,block;
         double t,u,v;
     }
     VoxelRenderer(BufferedImage texture) { atlas=texture.getRGB(0,0,256,256,null,0,256); }
+    void setClouds(BufferedImage original){clouds=original;}
     static int tile(int b,int axis,int normal) {
         return switch(b) {
             case 1 -> axis==1?(normal>0?0:2):3;
@@ -46,7 +48,7 @@ final class VoxelRenderer {
     void render(VoxelWorld w,double seconds) {
         double sy=Math.sin(w.yaw),cy=Math.cos(w.yaw),sp=Math.sin(w.pitch),cp=Math.cos(w.pitch);
         double focal=1/Math.tan(Math.toRadians(70)/2),aspect=WIDTH/(double)HEIGHT;
-        int fog=0xA4B8BE;
+        int fog=0xB8CFE5;
         double limit=distance+Math.sin(seconds*.012)*1.2;
         Hit h=new Hit();
         for(int yy=0;yy<HEIGHT;yy++) {
@@ -59,7 +61,18 @@ final class VoxelRenderer {
                 dy=sp+vy*cp;
                 dz=-vx*sy-cy*cp+vy*cy*sp;
                 double length=Math.sqrt(dx*dx+dy*dy+dz*dz);dx/=length;dy/=length;dz/=length;
-                int rgb=fog;
+                double horizon=Math.max(0,Math.min(1,dy*1.8));
+                int rgb=blend(fog,0x78A7FF,horizon);
+                if(clouds!=null && dy>.005){
+                    double t=(42-w.y)/dy;
+                    if(t>0 && t<260){
+                        int cx=Math.floorMod((int)Math.floor((w.x+dx*t+seconds*.35)/12),clouds.getWidth());
+                        int cz=Math.floorMod((int)Math.floor((w.z+dz*t)/12),clouds.getHeight());
+                        int cloud=clouds.getRGB(cx,cz);
+                        if((cloud>>>24)>100 && (cloud&0xffffff)>0x808080)
+                            rgb=blend(rgb,cloud,Math.max(0,1-t/300));
+                    }
+                }
                 if(trace(w,w.x,w.y,w.z,dx,dy,dz,limit,false,h)) {
                     int tile=tile(h.block,h.axis,h.normal);
                     int u=Math.min(15,(int)(h.u*16)),v=Math.min(15,(int)(h.v*16));
@@ -86,4 +99,11 @@ final class VoxelRenderer {
             }
         }
     }
+    private static int blend(int a,int b,double t){
+        int r=(int)(((a>>16)&255)*(1-t)+((b>>16)&255)*t);
+        int g=(int)(((a>>8)&255)*(1-t)+((b>>8)&255)*t);
+        int blue=(int)((a&255)*(1-t)+(b&255)*t);
+        return (r<<16)|(g<<8)|blue;
+    }
+
 }

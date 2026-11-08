@@ -15,6 +15,7 @@ final class MinecraftAssets implements AutoCloseable {
     final ZipFile client;
     final Path minecraft, resources;
     final BufferedImage terrain, gui, icons, font;
+    final BufferedImage logo, clouds;
     final Map<String, Path> indexed = new HashMap<>();
     final Map<String, List<Path>> sounds = new HashMap<>();
     private static final Pattern OBJECT = Pattern.compile("\"([^\"]+)\"\\s*:\\s*\\{\\s*\"hash\"\\s*:\\s*\"([a-f0-9]{40})\"");
@@ -29,6 +30,8 @@ final class MinecraftAssets implements AutoCloseable {
             icons = image(256, 16, "gui/icons.png", "icons.png");
             // Early Alpha keeps the original font at the archive root.
             font = image(128, 128, "default.png", "font/default.png");
+            logo = optionalImage("title/mclogo.png", "gui/logo.png", "logo.png");
+            clouds = optionalImage("environment/clouds.png", "clouds.png");
             indexSounds();
             for (String surface : List.of("grass", "stone", "wood", "sand")) {
                 List<Path> files = new ArrayList<>();
@@ -60,6 +63,19 @@ final class MinecraftAssets implements AutoCloseable {
         if (result == null || result.getWidth() != width || result.getHeight() < minHeight)
             throw new IOException("Unsupported legacy texture dimensions: " + entry.getName());
         return result;
+    }
+    private BufferedImage optionalImage(String... names) throws IOException {
+        for(String name:names){
+            ZipEntry entry=client.getEntry(name);
+            if(entry!=null&&!entry.isDirectory()){
+                try(InputStream in=client.getInputStream(entry)){
+                    BufferedImage image=ImageIO.read(in);
+                    if(image==null)throw new IOException("Unreadable original asset: "+name);
+                    return image;
+                }
+            }
+        }
+        return null; // No fabricated replacement when the original client has no such asset.
     }
     private void indexSounds() throws IOException {
         Path indexes = minecraft.resolve("assets/indexes");

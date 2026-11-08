@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  VERSION: '0.2.2'
+  VERSION: '0.3.0'
 
 jobs:
   build:
@@ -37,6 +37,8 @@ jobs:
           cache: maven
       - name: Test native engine
         run: ./test.sh
+      - name: Test real AWT fullscreen transitions
+        run: xvfb-run -a java -Djava.awt.headless=false -cp .test-classes FullscreenTests
       - name: Build executable JAR with original-audio decoder
         run: mvn -B -ntp clean package dependency:copy-dependencies dependency:sources
       - name: Verify executable entry point and decoder registration
