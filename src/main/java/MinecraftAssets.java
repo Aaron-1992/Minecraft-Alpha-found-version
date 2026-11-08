@@ -8,6 +8,10 @@ import javax.imageio.ImageIO;
 
 /** Reads unmodified assets from the user's own legacy client and resources. */
 final class MinecraftAssets implements AutoCloseable {
+    static final class MissingSoundsException extends IOException {
+        private static final long serialVersionUID=1L;
+        MissingSoundsException(String message) { super(message); }
+    }
     final ZipFile client;
     final Path minecraft, resources;
     final BufferedImage terrain, gui, icons, font;
@@ -31,7 +35,7 @@ final class MinecraftAssets implements AutoCloseable {
                     Path p = soundFile("step/" + surface + i + ".ogg");
                     if (p != null) files.add(p);
                 }
-                if (files.isEmpty()) throw new IOException("Missing original Minecraft sounds: step/" + surface + "*.ogg.\nUse --sounds pointing to a legacy sound folder, or --minecraft-dir with legacy assets installed.\nNo replacement or generated sound will be used.");
+                if (files.isEmpty()) throw new MissingSoundsException("Missing original Minecraft sounds: step/" + surface + "*.ogg.\nUse --sounds pointing to a legacy sound folder, or --minecraft-dir with legacy assets installed.\nNo replacement or generated sound will be used.");
                 sounds.put(surface, List.copyOf(files));
             }
         } catch (IOException | RuntimeException e) {

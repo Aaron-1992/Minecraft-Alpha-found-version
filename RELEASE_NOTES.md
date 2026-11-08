@@ -1,30 +1,32 @@
-## Native Java desktop preview
+## Windows EXE preview — 0.2.1
 
-**Download `alpha-desktop-0.2.0.zip`, extract it, and use `run.bat` (Windows) or `./run.sh` (Linux/macOS). Requires an installed Java 17+ runtime; no Maven or compilation is needed to play this build.**
+### Windows: no Java installation required
 
-Supply your original Minecraft assets when launching, for example:
+**Download `AlphaDesktop-0.2.1.exe` and double-click it to install.** Launch **AlphaDesktop** from the Start menu or desktop shortcut. Java is bundled privately with the application.
 
-```text
-run.bat --client-jar "C:\path\to\alpha.jar" --sounds "C:\path\to\sound"
-```
+Alternatively, download `AlphaDesktop-0.2.1-windows-x64-portable.zip`, extract the **whole ZIP**, then double-click `AlphaDesktop/AlphaDesktop.exe`. Keep the `app` and `runtime` folders next to the EXE; it is not a single-file portable executable.
 
-```sh
-./run.sh --client-jar "/path/to/alpha.jar" --sounds "/path/to/sound"
-```
+On first launch, native file-selection dialogs ask for your **original legacy Alpha client JAR** and, if not found automatically, the **original sound folder** containing `step/grass1.ogg`, etc. Your selections are remembered. No command-line arguments are needed.
 
-The standalone executable JAR is available as a separate download. Run it with `java -jar alpha-desktop-0.2.0.jar` followed by the same asset arguments. `SHA256SUMS.txt` lists download checksums.
+The app stores configuration and saves in `%APPDATA%\AlphaDesktop`, not the installation directory. It does not require administrator access to save games.
+
+**This preview is unsigned.** Windows may show an unknown-publisher or SmartScreen warning. Verify the publisher/source and the provided SHA-256 checksum before deciding whether to run it.
+
+### Other downloads
+
+- `alpha-desktop-0.2.1.jar`: cross-platform executable; requires an installed Java 17+ runtime.
+- `alpha-desktop-0.2.1.zip`: cross-platform JAR, scripts, documentation and decoder dependency distributions.
+- `SHA256SUMS.txt` and `SHA256SUMS-windows.txt`: download integrity checksums.
 
 ### Included
-- Native Java desktop game, not a browser application.
-- Seeded voxel terrain, walking, jumping, swimming, breaking and placing blocks.
-- Block inventory, world slots, options and compressed local saves.
-- Original Minecraft texture loading and original Ogg audio playback; the Vorbis decoder is included.
-- No generated media, synthesized sound effects, jumpscares or chat messages.
+
+Native desktop voxel sandbox, seeded terrain, walking/jumping/swimming, block breaking and placing, inventory, options and local world saves. Textures are read from original Minecraft files and original Ogg recordings are played through the bundled decoder. No generated replacement media, synthesized sound effects, jumpscares or chat messages.
 
 ### Important limitations
-- **Minecraft textures and recordings are NOT bundled.** Supply an original legacy Alpha client JAR and original legacy sound resources from your installation. Missing assets are reported explicitly, not substituted.
-- This is an early independent prototype, not a complete or exact copy of Minecraft Alpha.
-- No bundled Java runtime, platform-native installer, survival, infinite terrain, mobs, crafting or multiplayer.
-- CI compiles the game, runs nine headless tests, checks the executable entry point, and verifies Ogg decoder packaging. It does not verify interactive graphics or audible playback on your desktop.
 
-See the included README for asset locations, controls and troubleshooting. The ZIP includes the original audio-decoder dependency distributions and available source archives for their licensing information; no Minecraft asset redistribution is included.
+- **Original Minecraft assets are still required and are NOT bundled.** The EXE bundles Java and the decoder, not Minecraft. Missing assets are not substituted.
+- Windows packages target **64-bit Windows 10/11**.
+- This is an early independent prototype, not an exact copy of Minecraft Alpha. No survival, infinite terrain, mobs, crafting or multiplayer.
+- CI runs nine engine tests, verifies decoder packaging, creates the Windows app image, executes the actual generated `AlphaDesktop.exe --check-runtime`, and verifies the installer is a Windows PE executable. Interactive rendering, file selection, installation and audible playback still require desktop testing; the EXE smoke test does not cover those.
+
+See README for controls, original-asset locations and build instructions. Original audio-decoder dependency distributions and available source archives accompany the app for their upstream licensing information.

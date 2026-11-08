@@ -248,7 +248,8 @@ public final class AlphaDesktop extends Canvas implements Runnable {
     }
     private static void error(String text){System.err.println(text);if(!GraphicsEnvironment.isHeadless())JOptionPane.showMessageDialog(null,text,"Alpha setup",JOptionPane.ERROR_MESSAGE);}
     public static void main(String[] args){
-        Path mc=defaultMinecraft(),jar=null,sounds=null,saves=Path.of("saves");boolean check=false;
+        Path mc=defaultMinecraft(),jar=null,sounds=null,saves=DesktopSetup.dataDirectory().resolve("saves");boolean check=false;
+        boolean interactive=args.length==0&&!GraphicsEnvironment.isHeadless();
         try{
             for(int i=0;i<args.length;i++){
                 switch(args[i]){
@@ -257,16 +258,30 @@ public final class AlphaDesktop extends Canvas implements Runnable {
                     case "--sounds" -> sounds=Path.of(args[++i]);
                     case "--saves" -> saves=Path.of(args[++i]);
                     case "--check-assets" -> check=true;
-                    case "--help" -> {System.out.println("Native Java desktop game.\njava -jar alpha-desktop-0.2.0.jar --client-jar /path/to/alpha.jar [--minecraft-dir /path/to/.minecraft] [--sounds /path/to/original/sound] [--saves /path/to/saves] [--check-assets]\nUse original legacy Minecraft assets from your own installation. Nothing is generated or downloaded.");return;}
+                    case "--setup" -> interactive=true;
+                    case "--check-runtime" -> {
+                        boolean decoder=java.util.ServiceLoader.load(javax.sound.sampled.spi.AudioFileReader.class).stream()
+                                .anyMatch(provider->provider.type().getName().toLowerCase(Locale.ROOT).contains("vorbis"));
+                        if(!decoder)throw new IOException("Bundled original Ogg decoder is missing");
+                        System.out.println("Desktop runtime and original Ogg decoder are available.");return;
+                    }
+                    case "--help" -> {System.out.println("Native Java desktop game.\njava -jar alpha-desktop-0.2.1.jar --client-jar /path/to/alpha.jar [--minecraft-dir /path/to/.minecraft] [--sounds /path/to/original/sound] [--saves /path/to/saves] [--check-assets]\nUse original legacy Minecraft assets from your own installation. Nothing is generated or downloaded.");return;}
                     default -> throw new IllegalArgumentException("Unknown option: "+args[i]);
                 }
             }
+            MinecraftAssets assets;
+            if(interactive){
+                DesktopSetup.Loaded setup=DesktopSetup.open();
+                if(setup==null)return;
+                assets=setup.assets();saves=setup.saves();
+            }else{
             if(jar==null){
                 Path automatic=mc.resolve("versions/a1.0.16/a1.0.16.jar");
                 if(Files.isRegularFile(automatic))jar=automatic;
                 else throw new IOException("Original Alpha client not found.\nSupply --client-jar /path/to/your/alpha-client.jar.\nAlso supply --sounds /path/to/legacy/sound if your launcher does not have legacy assets.\nNo generated textures or sounds are included.");
             }
-            MinecraftAssets assets=new MinecraftAssets(jar,mc,sounds);
+            assets=new MinecraftAssets(jar,mc,sounds);
+            }
             assets.report();
             if(check){try(assets;OriginalAudio audio=new OriginalAudio(assets)){System.out.println("Original textures and Ogg playback verified.");}return;}
             if(GraphicsEnvironment.isHeadless()){assets.close();throw new IOException("A real desktop display is required. This game does not run in a browser.");}

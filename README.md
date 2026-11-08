@@ -2,7 +2,7 @@
 
 A **desktop Java game**, not a website, WebView, browser game, or Java HTTP wrapper. The browser implementation has been removed.
 
-**No generated assets:** no synthesized audio, AI images, replacement textures, custom texture atlas, generated logo, or substitute font. Surface pixels, menus, font, crosshair and hotbar are read from **original Minecraft files supplied by you**. Audio is playback of original Minecraft Ogg recordings, decoded with VorbisSPI. If a required asset is missing, startup fails with its name rather than inventing a replacement.
+**No generated assets:** no synthesized audio, AI images, replacement textures, custom texture atlas, generated logo, or substitute font. Surface pixels, menus, font, crosshair and hotbar are read from **original Minecraft files supplied by you**. Audio is playback of original Minecraft Ogg recordings, decoded with VorbisSPI. On double-click launch, missing assets open a native selection dialog rather than inventing a replacement. Command-line validation reports missing assets explicitly.
 
 Procedural world generation and rendering are game logic, not replacement media assets.
 
@@ -19,15 +19,27 @@ The visual target is early Alpha, associated with the original Herobrine screens
 
 ## Download a built release
 
-Use the [GitHub Releases page](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases) and download the desktop ZIP. Extract it, install **Java 17+**, and use `run.bat` or `./run.sh` with your original asset paths. The executable JAR and audio decoder are already built; **Maven and a JDK are only needed if you build from source**.
+### Windows EXE (recommended)
 
-The release also provides a standalone executable JAR and SHA-256 checksums. Original Minecraft assets and a Java runtime are not included. GitHub Actions runs the headless tests, compiles and packages the executable, verifies its main class and Vorbis service registration, then publishes a prerelease targeting the exact build commit.
+On the [GitHub Releases page](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), download **`AlphaDesktop-0.2.1.exe`**, double-click to install, then open **AlphaDesktop** from the Start menu. **Java is bundled; no Java installation, terminal, Maven or compilation is needed.** This is a Windows x64 installer, not a renamed JAR.
+
+For a portable build, download **`AlphaDesktop-0.2.1-windows-x64-portable.zip`**, extract the entire ZIP and run `AlphaDesktop/AlphaDesktop.exe`. Keep its `app` and `runtime` folders together with the EXE. The installer and portable build are unsigned previews; Windows may show an unknown-publisher/SmartScreen warning. Checksums are included in the release.
+
+On first launch, select your original Alpha client JAR in the file picker. If legacy sounds are not found, select the original sound folder containing `step/grass1.ogg`, etc. Paths are remembered in `%APPDATA%\AlphaDesktop\assets.properties`. No command-line setup is required. Original Minecraft assets are **not** included or generated.
+
+### Linux/macOS or standalone Java
+
+The cross-platform desktop ZIP and standalone executable JAR remain available. These downloads require an installed **Java 17+** runtime. Launch without arguments for the same original-asset setup dialogs, or pass the explicit asset paths below. `--setup` opens setup again to change saved paths.
+
+### Release verification
+
+GitHub Actions runs nine engine tests, builds the shaded JAR and checks the decoder, then creates a real Windows EXE and a private Java runtime using `jpackage`. It smoke-tests both the bundled Java and actual `AlphaDesktop.exe --check-runtime`, verifies the installer PE header and publishes a release only after both Linux and Windows jobs succeed. This is not a full interactive graphics, installer or sound-output test.
 
 ## Build and launch
 
 ```sh
 mvn clean package
-java -jar target/alpha-desktop-0.2.0.jar \
+java -jar target/alpha-desktop-0.2.1.jar \
   --client-jar "/path/to/your/alpha-client.jar" \
   --minecraft-dir "/path/to/.minecraft" \
   --sounds "/path/to/original/sound"
@@ -56,10 +68,12 @@ Original sound files can be read from:
 
 Use original legacy recordings, not a newly generated sound pack. The app does not silently map modern sounds to old ones. If your installation has no legacy recordings, supply them from your own existing backup or installation. No proprietary asset downloader or account bypass is included.
 
+Configuration is stored in `assets.properties` in the same per-user data directory (never inside Program Files). Delete that file or run with `--setup` to change asset paths.
+
 To check original texture loading, Ogg decoding and desktop audio availability without opening the game:
 
 ```sh
-java -jar target/alpha-desktop-0.2.0.jar --client-jar "/path/to/alpha.jar" --sounds "/path/to/sound" --check-assets
+java -jar target/alpha-desktop-0.2.1.jar --client-jar "/path/to/alpha.jar" --sounds "/path/to/sound" --check-assets
 ```
 
 This prints the exact local source paths. It validates file structure and decoding, **not historical authenticity or ownership**.
@@ -80,7 +94,7 @@ Select **Singleplayer**, then one of five world slots. An empty slot asks for a 
 | E | Open/close block inventory |
 | Escape | Pause/resume, release mouse |
 
-Worlds are stored in `saves/World1.dat` through `World5.dat`, compressed and saved every 15 seconds, on pause, and on quit. `--saves /path/to/folder` changes the location. Saves use a custom format, not original Minecraft save compatibility. Writes use an atomic replacement where supported.
+Worlds are stored in `%APPDATA%\AlphaDesktop\saves\World1.dat` through `World5.dat` on Windows, or `~/.alpha-desktop/saves/` on Linux/macOS, compressed and saved every 15 seconds, on pause, and on quit. `--saves /path/to/folder` changes the location. Saves use a custom format, not original Minecraft save compatibility. Writes use an atomic replacement where supported.
 
 ## Scope and atmosphere
 
@@ -100,7 +114,7 @@ test.bat
 
 Nine headless tests cover seeds, terrain/water/trees, collision and edits, compressed save round-trips, corrupt-save rejection, DDA targeting and placement normals, water targeting, original atlas coordinates and explicit rejection of missing assets. No fake texture or sound fixtures are generated.
 
-The Java sources were compiled and all nine tests passed in the development sandbox. The native desktop window and audio output could not be exercised here: this sandbox has no desktop display, audio device or user-owned Alpha client/resources. Executable Maven packaging and decoder verification run in GitHub Actions before a release is published; inspect the linked release workflow for the outcome. Interactive desktop/audio testing still requires a real desktop and original Minecraft assets.
+The Java sources were compiled and all nine tests passed in the development sandbox. The native desktop window and audio output could not be exercised here: this sandbox has no desktop display, audio device or user-owned Alpha client/resources. Executable Maven packaging, decoder verification, native Windows EXE generation and a bundled-runtime/launcher smoke test run in GitHub Actions before a release is published; inspect the release workflow for the outcome. Interactive desktop/audio testing still requires a real desktop and original Minecraft assets.
 
 ## Rights
 

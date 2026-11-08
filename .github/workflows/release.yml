@@ -8,7 +8,7 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'pom.xml'
-      - 'scripts/package-release.py'
+      - 'scripts/**'
       - 'run.*'
       - 'test.*'
       - '.github/workflows/release.yml'
@@ -21,15 +21,16 @@ concurrency:
   group: alpha-desktop-release
   cancel-in-progress: false
 
+env:
+  VERSION: '0.2.1'
+
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      VERSION: '0.2.0'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -40,16 +41,58 @@ jobs:
         run: mvn -B -ntp clean package dependency:copy-dependencies dependency:sources
       - name: Verify executable entry point and decoder registration
         run: |
-          java -Djava.awt.headless=true -jar target/alpha-desktop-${VERSION}.jar --help
+          java -Djava.awt.headless=true -jar target/alpha-desktop-${VERSION}.jar --check-runtime
           python3 scripts/package-release.py --verify
       - name: Package desktop distribution
         run: python3 scripts/package-release.py
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: alpha-desktop-${{ env.VERSION }}
+          name: desktop-jvm
           path: release/*
           if-no-files-found: error
+
+  windows:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-jvm
+          path: release
+      - name: Stage compiled game
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force target | Out-Null
+          Copy-Item "release/alpha-desktop-$env:VERSION.jar" target
+      - name: Build and smoke-test Windows EXE with bundled Java
+        shell: pwsh
+        run: ./scripts/package-windows.ps1 -Version $env:VERSION
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows
+          path: |
+            release/*.exe
+            release/*-windows-x64-portable.zip
+            release/SHA256SUMS-windows.txt
+          if-no-files-found: error
+
+  publish:
+    needs: [build, windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: release
+          merge-multiple: true
       - name: Publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
@@ -59,6 +102,6 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title "Alpha Desktop ${VERSION} — preview ${GITHUB_RUN_NUMBER}" \
+            --title "Alpha Desktop ${VERSION} — Windows EXE preview ${GITHUB_RUN_NUMBER}" \
             --notes-file RELEASE_NOTES.md \
             release/*
