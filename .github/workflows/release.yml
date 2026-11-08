@@ -71,10 +71,21 @@ jobs:
       - name: Build executable JAR with original-audio decoder
         run: mvn -B -ntp clean package dependency:copy-dependencies dependency:sources
       - name: Verify executable entry point and decoder registration
+        shell: bash
         run: |
-          java -Djava.awt.headless=true -jar target/alpha-desktop-${VERSION}.jar --check-runtime
-          python3 scripts/package-release.py --verify
-          java -Djava.awt.headless=true -jar target/alpha-desktop-${VERSION}.jar --check-agent-preflight
+          set +e
+          (
+            set -e
+            java -Djava.awt.headless=true -jar target/alpha-desktop-${VERSION}.jar --check-runtime
+            python3 scripts/package-release.py --verify
+            java -Djava.awt.headless=true -jar target/alpha-desktop-${VERSION}.jar --check-agent-preflight
+          ) > packaged-verify.log 2>&1
+          RESULT=$?
+          cat packaged-verify.log
+          if [ "$RESULT" -ne 0 ]; then
+            python3 -c 'import pathlib; print("::error::" + pathlib.Path("packaged-verify.log").read_text()[-10000:].replace("\n", "%0A"))'
+            exit "$RESULT"
+          fi
       - name: Package desktop distribution
         run: python3 scripts/package-release.py
       - uses: actions/upload-artifact@v4

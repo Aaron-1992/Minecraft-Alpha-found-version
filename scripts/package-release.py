@@ -51,7 +51,7 @@ def verify():
                         raise SystemExit('Unexpected class in isolated bootstrap helper')
             for member in agent.namelist():
                 if member.startswith('alpha/ambient/') and member.endswith('.class'):
-                    if int.from_bytes(agent.read(member)[6:8], 'big') != 52:
+                    if int.from_bytes(agent.read(member)[6:8], 'big') > 52:
                         raise SystemExit('Runtime mod is not Java 8 compatible')
                 if member.lower().endswith(('.png', '.ogg', '.wav')):
                     raise SystemExit('Unexpected media in optional mod')
