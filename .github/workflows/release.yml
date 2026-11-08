@@ -72,7 +72,20 @@ jobs:
           Copy-Item "release/alpha-desktop-$env:VERSION.jar" target
       - name: Build and smoke-test Windows EXE with bundled Java
         shell: pwsh
-        run: ./scripts/package-windows.ps1 -Version $env:VERSION
+        run: |
+          try {
+            Start-Transcript -Path windows-build.log
+            ./scripts/package-windows.ps1 -Version $env:VERSION
+            Stop-Transcript
+          } catch {
+            Write-Output "::error::$($_.Exception.Message)"
+            Stop-Transcript -ErrorAction SilentlyContinue
+            if (Test-Path windows-build.log) {
+              $Details = (Get-Content windows-build.log -Tail 45) -join '%0A'
+              Write-Output "::error::Windows packaging log: $Details"
+            }
+            throw
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-windows

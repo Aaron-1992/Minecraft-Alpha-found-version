@@ -18,7 +18,7 @@ Copy-Item "target/alpha-desktop-$Version.jar" $InputDir
 if ($LASTEXITCODE -ne 0) { throw "jpackage app-image failed" }
 
 # Test BOTH the bundled runtime and the actual generated Windows .exe.
-& "$App/runtime/bin/java.exe" -Djava.awt.headless=true -jar "$App/app/alpha-desktop-$Version.jar" --check-runtime
+& "$App/runtime/bin/java.exe" "-Djava.awt.headless=true" -jar "$App/app/alpha-desktop-$Version.jar" --check-runtime
 if ($LASTEXITCODE -ne 0) { throw "Bundled Java / Vorbis smoke test failed" }
 $Process = Start-Process -FilePath "$App/AlphaDesktop.exe" -ArgumentList "--check-runtime" -PassThru
 if (-not $Process.WaitForExit(30000)) {
