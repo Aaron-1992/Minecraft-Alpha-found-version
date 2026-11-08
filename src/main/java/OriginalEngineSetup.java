@@ -8,15 +8,17 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 /** Native setup for using the user's real Alpha engine through their existing launcher. */
 final class OriginalEngineSetup {
     static boolean chooseOriginal()throws Exception{
-        int[] selected={2};
+        int[] selected={3};
         SwingUtilities.invokeAndWait(()->selected[0]=JOptionPane.showOptionDialog(null,
-                "For the authentic Alpha renderer, terrain, menus and gameplay, use the original engine.\n"
-                +"This prepares a separate installation in your existing Minecraft Launcher.\n\n"
-                +"The custom sandbox remains available, but is not the original Minecraft engine.",
-                "Alpha - choose engine",JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,
-                new String[]{"Original Alpha (recommended)","Custom sandbox","Cancel"},"Original Alpha (recommended)"));
-        if(selected[0]==2||selected[0]<0)return true;
-        if(selected[0]==0){open();return true;}return false;
+                "If Minecraft exits with code 1, Recover startup automatically checks local failure logs.\n"
+                +"It can also create a clean, separate original-client test installation with no agents.\n\n"
+                +"Original Alpha setup and the independent custom sandbox remain available.",
+                "Alpha - startup",JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,
+                new String[]{"Recover startup","Original Alpha setup","Custom sandbox","Cancel"},"Recover startup"));
+        if(selected[0]==2)return false;
+        if(selected[0]==0)StartupRecovery.open();
+        else if(selected[0]==1)open();
+        return true;
     }
     static void open()throws Exception{
         if(GraphicsEnvironment.isHeadless())throw new IOException("Original-engine setup requires a desktop display");

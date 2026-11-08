@@ -69,6 +69,36 @@ final class OriginalAlphaInstallation {
         List<Path> backups=writeUpdates(originals,updated);
         return new Prepared(client.version,gameDirectory,List.copyOf(profileFiles),List.copyOf(backups),recordings,profileName,ambient);
     }
+    interface RuntimeSource { Path install(Path directory)throws IOException; }
+    static Prepared prepareRecovery(Client client,Path gameDirectory)throws IOException{
+        return prepareRecovery(client,gameDirectory,LegacyRuntime::installIfAvailable);
+    }
+    static Prepared prepareRecovery(Client client,Path gameDirectory,RuntimeSource source)throws IOException{
+        gameDirectory=gameDirectory.toAbsolutePath().normalize();
+        Map<Path,String> originals=new LinkedHashMap<>(),updates=new LinkedHashMap<>();
+        for(String name:List.of("launcher_profiles.json","launcher_profiles_microsoft_store.json")){
+            Path file=client.minecraft.resolve(name);if(!Files.isRegularFile(file))continue;
+            String input=Files.readString(file);originals.put(file,input);
+            updates.put(file,mergeProfile(input,client.version,gameDirectory,"alpha-found-recovery","Alpha Found - Recovery"));
+        }
+        if(updates.isEmpty())throw new IOException("No existing launcher profile file found. Open Java Edition in the official launcher once, then close it before retrying.");
+        Files.createDirectories(gameDirectory);Path runtime=source.install(gameDirectory);
+        if(runtime!=null)LegacyRuntime.verifyJava8(runtime);
+        for(Path file:updates.keySet()){
+            Map<String,Object> root=LauncherJson.object(updates.get(file));
+            @SuppressWarnings("unchecked") Map<String,Object> profiles=(Map<String,Object>)root.get("profiles");
+            @SuppressWarnings("unchecked") Map<String,Object> profile=(Map<String,Object>)profiles.get("alpha-found-recovery");
+            // Deliberately reset ONLY this dedicated test profile. No existing
+            // profile's agents, JVM tuning, game directory or world is changed.
+            profile.put("javaArgs","-Xmx1G");profile.remove("javaDir");
+            if(runtime!=null){Path javaw=runtime.resolveSibling("javaw.exe");profile.put("javaDir",(Files.isRegularFile(javaw)?javaw:runtime).toString());}
+            updates.put(file,LauncherJson.write(root));
+        }
+        Path options=gameDirectory.resolve("options.txt");
+        if(!Files.exists(options))Files.writeString(options,"renderDistance:2\nfancyGraphics:false\nanaglyph3d:false\nbobView:true\nsound:1.0\nmusic:0.5\n",StandardOpenOption.CREATE_NEW);
+        List<Path> backups=writeUpdates(originals,updates);
+        return new Prepared(client.version,gameDirectory,List.copyOf(updates.keySet()),List.copyOf(backups),0,"Alpha Found - Recovery",false);
+    }
     private static List<Path> writeUpdates(Map<Path,String> originals,Map<Path,String> updated)throws IOException{
         List<Path> backups=new ArrayList<>();
         for(Path file:updated.keySet()){

@@ -6,4 +6,6 @@ if errorlevel 1 exit /b %errorlevel%
 java -Djava.awt.headless=true -cp .test-classes DesktopTests
 if errorlevel 1 exit /b %errorlevel%
 java -Djava.awt.headless=true -cp .test-classes OriginalEngineTests
+if errorlevel 1 exit /b %errorlevel%
+java -Djava.awt.headless=true -cp .test-classes RecoveryTests
 exit /b %errorlevel%

@@ -1,16 +1,32 @@
 # Alpha Found — original engine setup + native sandbox
 
+## Still getting exit code 1? Start here
+
+**0.5.2 is a recovery/diagnostic build, not a verified fix for the user's unknown original-client crash.**
+
+1. Install the Windows EXE and choose **Recover startup**. The native window automatically reads bounded tails of known local launcher/game logs and displays possible failure categories plus redacted excerpts.
+2. Close Minecraft Launcher, then choose **Create clean test installation**.
+3. In your normal launcher, play the new **Alpha Found - Recovery** installation—not a previous Alpha Found/Compatibility entry.
+
+The test installation runs **vanilla Alpha with no agent/horror effects**, uses a separate `recovery-engine/<version>` game folder, and selects a private Java 8 runtime on Windows only after checking `java -version`. Its JVM arguments are reset to a conservative `-Xmx1G`. Existing profiles and worlds stay untouched; launcher profile files are backed up. Existing recovery-world/options files are preserved too. This is a baseline to distinguish mod/startup settings from underlying original-client, native-library or driver trouble, not a replacement horror implementation.
+
+If it still fails, reopen Recover startup → **Save diagnostic report**. The app saves a text file under its per-user `diagnostics` folder and opens it in the default editor when possible. Attach that report instead of manually finding logs. **Review before sharing; redaction is best-effort.** Nothing is uploaded automatically.
+
+The collector never reads account files. It examines only known launcher log names and limited game/crash/preflight log locations, caps each tail at 256 KiB and exports at most five short failure excerpts. It omits sensitive/token/session/argument lines and masks common identifiers, emails and home paths. A source timestamp is included because a shared launcher log may describe an older/different launch. A recognized signature is a possible cause, not proof of this launch's root cause. A generic exit code stays UNKNOWN rather than inventing a repair.
+
+`--recover` opens the same tool directly. `--check-recovery` is the packaging/configuration smoke test; it does not launch Minecraft. Windows CI checks the actual packaged Java 8 copy and creates a no-agent fixture profile, in addition to the existing instrumentation checks.
+
 ## Recommended: use the real Alpha engine
 
 The custom software renderer cannot reproduce all of Minecraft Alpha's behavior just by reusing its textures. This release adds **Original Alpha mode**, which prepares an isolated installation in your **existing official Minecraft Launcher**. The launcher then runs your installed, unmodified Alpha client, including its real renderer, world generation, menus, lighting, audio and gameplay. No game code is decompiled, copied into this project or redistributed; an optional bundled runtime agent can apply in-memory hooks without rewriting the original JAR.
 
 **This mode uses your existing launcher, not direct game execution from our EXE.** Choose vanilla setup or explicitly install experimental environmental changes through a Java runtime agent. Performance and appearance are those of your original Alpha client, subject to its compatibility with your hardware/launcher. There are no benchmarked speedup claims for the original game.
 
-### Windows compatibility rebuild (0.5.1)
+### Windows compatibility rebuild (0.5.2)
 
 The reported exit-code-1 cause is **not known** without its exception. This rebuild addresses startup risks rather than claiming that exact crash has been reproduced.
 
-1. Download **`AlphaDesktop-0.5.1.exe`** from [GitHub Releases](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), install and open AlphaDesktop.
+1. Download **`AlphaDesktop-0.5.2.exe`** from [GitHub Releases](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), install and open AlphaDesktop.
 2. **Close Minecraft Launcher**, choose **Original Alpha → Install compatibility build** and select your installed Alpha JAR if asked.
 3. Setup copies the bundled Java 8 runtime into the isolated compatibility directory and tests the actual packaged agent in a separate JVM **before** writing its launcher profile. Wait for this check; on failure the profile is not enabled and local details remain in `mods/agent-preflight.log`.
 4. Open your usual Minecraft Launcher → Java Edition → Installations → **Alpha Found - Compatibility** → Play. Use this **new** installation, not the previous `Alpha Found` entry. Create a new world.
@@ -21,7 +37,7 @@ Choose **Disable installed mod** to remove only this project's agent options fro
 
 A standalone cross-platform JAR does **not** contain the Windows Java 8 runtime. Use the complete Windows release for this compatibility profile on Windows. On other platforms, the preflight uses the app's Java runtime and the official launcher retains its original-game runtime selection; this is not a bundled cross-platform Java 8 solution.
 
-The official launcher still manages your normal account, game libraries and Play operation. No credentials, ownership bypass or Minecraft client/assets are bundled. The selected original Alpha version must already be installed with matching version metadata.
+The official launcher still manages your normal account, game libraries and Play operation. No credentials, ownership bypass or Minecraft client/assets are bundled. The selected original Alpha version must already be installed with matching version metadata. For the reported startup crash, use **Recover startup** first; the experimental mod setup below is not the clean baseline.
 
 **Unsigned preview:** Windows may show an unknown-publisher/SmartScreen warning. Verify the source/checksums before deciding whether to run it. Extract the **whole** portable ZIP if not using the installer.
 
@@ -68,7 +84,7 @@ Original Minecraft assets are required: a legacy JAR containing `terrain.png`, G
 
 Original title textures (`title/mclogo.png`, `gui/logo.png`, `logo.png`) and cloud masks (`environment/clouds.png`, `clouds.png`) are loaded when present. If absent, clouds are omitted and the title uses the original bitmap font. All block surfaces, font, hotbar, crosshair and recordings come from original assets supplied locally; no generated replacement textures, fonts, logos or synthesized effects are bundled.
 
-### Fallback performance changes in 0.5.1
+### Fallback performance changes in 0.5.2
 
 - Precomputed normalized camera rays instead of per-pixel square roots every frame.
 - Original cloud pixels cached outside the render loop.
@@ -108,20 +124,20 @@ Source builds require **JDK 17+ and Maven 3.8+**:
 ```sh
 mvn -f agent/pom.xml clean package
 mvn clean package
-java -jar target/alpha-desktop-0.5.1.jar
+java -jar target/alpha-desktop-0.5.2.jar
 ```
 
 `build.bat` / `build.sh` also build the shaded JAR with its Ogg decoder. Cross-platform JAR downloads require Java 17+; the Windows EXE bundles Java for this app. The official launcher separately manages the runtime for the original game.
 
 ```sh
 # Prepare the real Alpha installation (native dialogs):
-java -jar target/alpha-desktop-0.5.1.jar --original
+java -jar target/alpha-desktop-0.5.2.jar --original
 
 # Custom sandbox, with native asset dialogs:
-java -jar target/alpha-desktop-0.5.1.jar --prototype
+java -jar target/alpha-desktop-0.5.2.jar --prototype
 
 # Custom sandbox with explicit local asset paths:
-java -jar target/alpha-desktop-0.5.1.jar \
+java -jar target/alpha-desktop-0.5.2.jar \
   --client-jar "/path/to/alpha.jar" \
   --minecraft-dir "/path/to/.minecraft" \
   --sounds "/path/to/original/sound"
@@ -136,7 +152,7 @@ java -jar target/alpha-desktop-0.5.1.jar \
 # Windows: test.bat
 ```
 
-There are **31 main-app headless tests** plus **13 agent unit tests** and fresh-JVM instrumentation/preflight tests on Java 8 and 17, including an isolated child classloader and a check that neither public nor private ASM is bootstrap-visible. Run `mvn -f agent/pom.xml clean package` to execute the agent tests. They check original-version metadata layout, safe launcher JSON round-trips, preservation of other profiles/settings, exact backups, immutable client files, rejection of malformed files, resource-path safety and precomputed-ray equivalence. Fixtures contain configuration/metadata only, not proprietary game code, fabricated texture pixels or recordings.
+There are **45 main-app headless tests** plus **13 agent unit tests** and fresh-JVM instrumentation/preflight tests on Java 8 and 17, including an isolated child classloader and a check that neither public nor private ASM is bootstrap-visible. Run `mvn -f agent/pom.xml clean package` to execute the agent tests. They check original-version metadata layout, safe launcher JSON round-trips, preservation of other profiles/settings, exact backups, immutable client files, rejection of malformed files, resource-path safety and precomputed-ray equivalence. Fixtures contain configuration/metadata only, not proprietary game code, fabricated texture pixels or recordings.
 
 CI also runs **three real AWT fullscreen tests** under Xvfb, builds the executable, verifies Ogg SPI and embedded Java 8-agent packaging and creates the Windows EXE/installer. It smoke-tests the generated Windows launcher, then runs the main distribution's extracted agent with the actual bundled Java 8 runtime in a path containing spaces before publishing. The packaging verifier checks the bootstrap helper contains only hook classes and no unrelocated ASM remains.
 

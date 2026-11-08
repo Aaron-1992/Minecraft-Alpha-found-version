@@ -1,4 +1,4 @@
-param([string]$Version = "0.5.1")
+param([string]$Version = "0.5.2")
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
@@ -32,6 +32,8 @@ foreach ($Name in @("release", "LICENSE", "NOTICE", "THIRD_PARTY_README", "ASSEM
 if ($LASTEXITCODE -ne 0) { throw "Bundled Java / Vorbis smoke test failed" }
 & "$App/runtime/bin/java.exe" "-Djava.awt.headless=true" -jar "$App/app/alpha-desktop-$Version.jar" --check-agent-preflight
 if ($LASTEXITCODE -ne 0) { throw "Packaged Java 8 / isolated-agent preflight failed" }
+& "$App/runtime/bin/java.exe" "-Djava.awt.headless=true" -jar "$App/app/alpha-desktop-$Version.jar" --check-recovery
+if ($LASTEXITCODE -ne 0) { throw "Packaged no-agent recovery profile / Java 8 configuration check failed" }
 $Process = Start-Process -FilePath "$App/AlphaDesktop.exe" -ArgumentList "--check-runtime" -PassThru
 if (-not $Process.WaitForExit(30000)) {
     $Process.Kill()

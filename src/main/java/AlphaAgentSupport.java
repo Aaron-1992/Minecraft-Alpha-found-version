@@ -5,7 +5,7 @@ import java.util.zip.*;
 
 /** Structural compatibility check only. Does not decompile or execute client classes. */
 final class AlphaAgentSupport {
-    static final String RESOURCE="/mods/alpha-ambient-agent-0.5.1.jar";
+    static final String RESOURCE="/mods/alpha-ambient-agent-0.5.2.jar";
     static String findChunkClass(Path jar)throws IOException{
         List<String> candidates=new ArrayList<>();
         try(ZipFile archive=new ZipFile(jar.toFile())){
@@ -52,9 +52,9 @@ final class AlphaAgentSupport {
         }
     }
     static Path install(Path directory)throws IOException{
-        Files.createDirectories(directory);Path target=directory.resolve("alpha-ambient-agent-0.5.1.jar");
+        Files.createDirectories(directory);Path target=directory.resolve("alpha-ambient-agent-0.5.2.jar");
         try(InputStream input=AlphaAgentSupport.class.getResourceAsStream(RESOURCE)){
-            if(input==null)throw new IOException("Optional agent is not packaged. Use the complete 0.5.1 release, not an old or partial build.");
+            if(input==null)throw new IOException("Optional agent is not packaged. Use the complete 0.5.2 release, not an old or partial build.");
             byte[] packaged=input.readAllBytes();
             if(Files.exists(target)){
                 if(!Arrays.equals(Files.readAllBytes(target),packaged))throw new IOException("Existing optional mod differs from this release; it was not overwritten: "+target);

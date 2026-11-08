@@ -1,32 +1,27 @@
-## 0.5.1 — compatibility rebuild
+## 0.5.2 — startup recovery and automatic local diagnosis
 
-**Download `AlphaDesktop-0.5.1.exe`, install it, then run setup again.** This is a compatibility rebuild, not a claim that the reported exit-code-1 cause has been confirmed without a crash log.
+**The repeated exit-code-1 cause is still unknown. This is a recovery/diagnostic build, not another claim that the original-client crash is fixed.**
 
 ### What to do
 
-1. Close Minecraft Launcher.
-2. Open AlphaDesktop → **Original Alpha** → **Install compatibility build**.
-3. Select the installed Alpha JAR if asked. Wait for the packaged agent's startup preflight to complete.
-4. Open Minecraft Launcher and select the **NEW `Alpha Found - Compatibility`** installation, not the old `Alpha Found` entry.
-5. Create a new world in this separate installation.
+1. Install **`AlphaDesktop-0.5.2.exe`** and open it.
+2. Choose **Recover startup**. It automatically checks known local launcher/game logs and displays the available error explanation/excerpt. You do not need to locate log files manually.
+3. Close Minecraft Launcher and choose **Create clean test installation**.
+4. Open your normal launcher → Java Edition → Installations → **Alpha Found - Recovery** → Play.
 
-There is also a **Disable installed mod** setup option. It removes only this project's agent arguments from this project's profiles, keeps other options/worlds and backs up profile files. No manual JVM-argument editing is required.
+**This clean test is vanilla Alpha with NO agent or horror effects.** It pins a verified private Java 8 runtime on Windows, resets only its own test profile's JVM arguments and uses a separate game folder. The previous Alpha Found/Compatibility profiles, original client and worlds remain untouched. It is meant to distinguish an injection/settings problem from a client/native-library/driver failure, not pretend the horror mod is working.
 
-### Reworked startup
+If it still exits, open **Recover startup** again and click **Save diagnostic report**. A redacted text report is saved locally and opened in your default text editor. You can attach that one file instead of digging through logs or sending another generic exit-code popup. Review the report before sharing: redaction is best-effort. Nothing is uploaded automatically.
 
-- **ASM is private/relocated.** It is no longer exported into the bootstrap classloader where it could collide with LaunchWrapper's own instrumentation libraries. Only a tiny helper JAR containing this project's hooks is bootstrap-visible.
-- **The Windows distribution now carries Java 8 for original Alpha**, separately from Java 17 used by our setup app. Setup copies it to the isolated compatibility folder and pins only the new compatibility profile to it. Existing installations and their Java settings are untouched.
-- The entire `-javaagent:...` option is quoted as one JVM argument. Paths containing spaces have regression coverage.
-- Before writing/enabling the compatibility profile, setup starts the packaged agent in a separate JVM using that runtime. The probe tests actual transformation through an isolated classloader and rejects bootstrap ASM leakage.
-- Failed preflight leaves launcher profiles unmodified and retains local details at `mods/agent-preflight.log`. It does **not** silently report success or ask you to manually collect logs first.
-- Startup/transformer initialization errors now disable optional instrumentation for nonfatal failures rather than deliberately aborting startup.
+### What changed
 
-The old installation, original client JAR and worlds are left untouched. The new compatibility profile uses `%APPDATA%\AlphaDesktop\compatibility-engine\<version>`. Disabling the agent still cannot undo terrain already saved in any modded world.
+- Read-only scan of known launcher log names, isolated game logs, crash reports and agent preflight logs. Reads are bounded; logs are not copied wholesale.
+- Recognizes Java-version, JVM-option, agent-startup, native-library, graphics, missing-class and class-linkage failure signatures. An unknown/generic exit code stays UNKNOWN; a matching signature is a possible cause, not a confirmed current diagnosis.
+- Reports source timestamps and warns that a shared launcher log can describe an older/different launch.
+- Omits sensitive/account/argument lines, masks common tokens/identifiers/home paths and exports only redacted error excerpts. It does not read account files or send network reports.
+- Separate **Alpha Found - Recovery** profile with zero agent options, a conservative 1 GB heap, verified Java 8 on Windows, conservative initial graphics options and profile backups. Existing worlds/options are not overwritten.
+- Windows packaging now tests creation of the clean profile and verifies that its private runtime actually reports Java 8, in addition to the previous agent/runtime checks.
 
-### Verification / limits
+Original Minecraft files are still required and are not redistributed. The actual user-owned client launch, game libraries/natives, graphics driver and gameplay remain unverified in CI. The clean recovery baseline does not fix missing libraries, ownership/login issues or graphics drivers automatically.
 
-CI tests app/profile repair, isolated helper packaging, private ASM relocation, actual Java-agent startup on Java 8 and 17, and the **packaged Windows distribution's Java 8 + extracted-agent preflight**, as well as fullscreen and the native EXE entry point.
-
-**This preflight exercises our own fixture, not the original Alpha game.** Your actual client, graphics drivers, native game libraries, original launcher execution and complete gameplay remain unverified. Another exit-code-1 cause is still possible. The original mod's sparse environmental behavior is otherwise unchanged; no jumpscares, chat events, generated media or new sound effects were added.
-
-The EXE includes OpenJDK runtimes and their accompanying license/notice files, not Minecraft assets or client code. Runtime build metadata is retained in `release`; upstream source is available from Adoptium/OpenJDK (https://github.com/adoptium/jdk8u and https://github.com/adoptium/temurin8-binaries). Cross-platform JAR downloads do not carry the Windows Java 8 runtime; use the complete Windows installer/portable ZIP for the compatibility profile on Windows.
+Downloads include the unsigned Windows installer, whole-folder portable ZIP, cross-platform JAR distribution and checksums. The full Windows release includes private Java runtimes; the standalone JAR does not contain Windows Java 8. The previous optional mod remains available under **Original Alpha setup**, but recovery is the recommended next step for the reported crash.

@@ -293,6 +293,8 @@ public final class AlphaDesktop extends Canvas implements Runnable {
                     case "--check-assets" -> check=true;
                     case "--setup", "--prototype" -> interactive=true;
                     case "--original" -> {OriginalEngineSetup.open();return;}
+                    case "--recover" -> {StartupRecovery.open();return;}
+                    case "--check-recovery" -> {StartupRecovery.verifyPackagedRecovery();return;}
                     case "--check-agent-preflight" -> {AlphaAgentSupport.verifyPackagedAgent();return;}
                     case "--check-runtime" -> {
                         boolean decoder=java.util.ServiceLoader.load(javax.sound.sampled.spi.AudioFileReader.class).stream()
@@ -300,7 +302,7 @@ public final class AlphaDesktop extends Canvas implements Runnable {
                         if(!decoder)throw new IOException("Bundled original Ogg decoder is missing");
                         System.out.println("Desktop runtime and original Ogg decoder are available.");return;
                     }
-                    case "--help" -> {System.out.println("Native Java desktop game.\njava -jar alpha-desktop-0.5.1.jar --client-jar /path/to/alpha.jar [--minecraft-dir /path/to/.minecraft] [--sounds /path/to/original/sound] [--saves /path/to/saves] [--check-assets]\nUse --original to prepare an official-launcher installation with the real Alpha engine. Use --prototype for the custom sandbox.\nUse original legacy Minecraft assets from your own installation. Nothing is generated or downloaded.");return;}
+                    case "--help" -> {System.out.println("Native Java desktop game.\njava -jar alpha-desktop-0.5.2.jar --client-jar /path/to/alpha.jar [--minecraft-dir /path/to/.minecraft] [--sounds /path/to/original/sound] [--saves /path/to/saves] [--check-assets]\nUse --original to prepare an official-launcher installation with the real Alpha engine. Use --prototype for the custom sandbox.\nUse original legacy Minecraft assets from your own installation. Nothing is generated or downloaded.");return;}
                     default -> throw new IllegalArgumentException("Unknown option: "+args[i]);
                 }
             }

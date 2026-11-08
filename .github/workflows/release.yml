@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  VERSION: '0.5.1'
+  VERSION: '0.5.2'
 
 jobs:
   build:
@@ -79,6 +79,7 @@ jobs:
             java -Djava.awt.headless=true -jar target/alpha-desktop-${VERSION}.jar --check-runtime
             python3 scripts/package-release.py --verify
             java -Djava.awt.headless=true -jar target/alpha-desktop-${VERSION}.jar --check-agent-preflight
+            java -Djava.awt.headless=true -jar target/alpha-desktop-${VERSION}.jar --check-recovery
           ) > packaged-verify.log 2>&1
           RESULT=$?
           cat packaged-verify.log

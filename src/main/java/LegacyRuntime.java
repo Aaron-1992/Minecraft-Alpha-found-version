@@ -10,9 +10,9 @@ final class LegacyRuntime {
         try{app=Path.of(LegacyRuntime.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();}
         catch(Exception e){throw new IOException("Cannot locate packaged compatibility runtime",e);}
         Path source=app.resolve("legacy-runtime");
-        if(!Files.isRegularFile(source.resolve("bin/java.exe")))throw new IOException("Bundled Java 8 runtime missing. Install the complete Windows 0.5.1 release, not its standalone JAR.");
+        if(!Files.isRegularFile(source.resolve("bin/java.exe")))throw new IOException("Bundled Java 8 runtime missing. Install the complete Windows 0.5.2 release, not its standalone JAR.");
         Path parent=gameDirectory.resolve("runtime");Files.createDirectories(parent);
-        Path target=parent.resolve("java8-0.5.1"),marker=target.resolve(".alpha-runtime-complete");
+        Path target=parent.resolve("java8-0.5.2"),marker=target.resolve(".alpha-runtime-complete");
         if(Files.exists(target)){
             if(!Files.isRegularFile(marker)||!Files.isRegularFile(target.resolve("bin/java.exe")))throw new IOException("Incomplete compatibility runtime; left untouched: "+target);
             return target.resolve("bin/java.exe").toAbsolutePath();
@@ -27,13 +27,23 @@ final class LegacyRuntime {
                     else if(Files.isRegularFile(file))Files.copy(file,output,StandardCopyOption.COPY_ATTRIBUTES);
                 }
             }
-            Files.writeString(temp.resolve(".alpha-runtime-complete"),"AlphaDesktop 0.5.1 Java 8 compatibility runtime\n",StandardOpenOption.CREATE_NEW);
+            Files.writeString(temp.resolve(".alpha-runtime-complete"),"AlphaDesktop 0.5.2 Java 8 compatibility runtime\n",StandardOpenOption.CREATE_NEW);
             try{Files.move(temp,target,StandardCopyOption.ATOMIC_MOVE);}
             catch(AtomicMoveNotSupportedException e){Files.move(temp,target);}
         }finally{
             if(Files.exists(temp))try(var paths=Files.walk(temp)){for(Path path:paths.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(path);}
         }
         return target.resolve("bin/java.exe").toAbsolutePath();
+    }
+    static String verifyJava8(Path executable)throws IOException{
+        Path log=executable.getParent().getParent().resolve("runtime-version-check.log");
+        Process process=new ProcessBuilder(executable.toString(),"-version").redirectErrorStream(true).redirectOutput(log.toFile()).start();
+        try{
+            if(!process.waitFor(15,java.util.concurrent.TimeUnit.SECONDS)){process.destroyForcibly();throw new IOException("Java 8 runtime check timed out; no recovery profile was written. Details: "+log);}
+            String version=Files.readString(log);
+            if(process.exitValue()!=0||!version.contains("version \"1.8."))throw new IOException("The private runtime did not report Java 8; no recovery profile was written. Details: "+log);
+            return version;
+        }catch(InterruptedException e){process.destroyForcibly();Thread.currentThread().interrupt();throw new IOException("Runtime check interrupted",e);}
     }
     static Path currentJava(){return Path.of(System.getProperty("java.home"),"bin",System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win")?"java.exe":"java");}
 }
