@@ -31,7 +31,7 @@ final class OriginalEngineSetup {
         final int[] confirm={-1};
         SwingUtilities.invokeAndWait(()->confirm[0]=JOptionPane.showOptionDialog(null,
                 "Close Minecraft Launcher before continuing.\n\n"
-                +"Optional environmental changes run inside the original Alpha client.\n"
+                +"Compatibility rebuild: isolated agent libraries, startup preflight and bundled Java 8 on Windows.\n"
                 +"No replacement assets, jump scares, chat events or loud sound effects.\n"
                 +"They use a NEW separate installation/game folder; use a new world.\n"
                 +"Terrain changes saved there persist even if the mod is later disabled.\n\n"
@@ -39,8 +39,8 @@ final class OriginalEngineSetup {
                 +"Original JARs and other installations are not modified; profile files are backed up.\n\n"
                 +"Choose the optional mod or keep vanilla Alpha:",
                 "Prepare Alpha installation",JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,
-                new String[]{"Install environmental changes","Vanilla Alpha","Cancel"},"Vanilla Alpha"));
-        if(confirm[0]<0||confirm[0]>1)return;
+                new String[]{"Install compatibility build","Vanilla Alpha","Disable installed mod","Cancel"},"Vanilla Alpha"));
+        if(confirm[0]<0||confirm[0]>2)return;
         boolean ambient=confirm[0]==0;
         while(true){
             if(!Files.isRegularFile(candidate)){
@@ -48,7 +48,11 @@ final class OriginalEngineSetup {
             }
             try{
                 OriginalAlphaInstallation.Client client=OriginalAlphaInstallation.inspect(candidate);
-                Path game=DesktopSetup.dataDirectory().resolve(ambient?"ambient-engine":"original-engine").resolve(client.version());
+                if(confirm[0]==2){
+                    int changes=OriginalAlphaInstallation.disableAmbient(client.minecraft());
+                    SwingUtilities.invokeAndWait(()->JOptionPane.showMessageDialog(null,"Removed this project's agent arguments from "+changes+" installation entries.\nOther JVM options and saved worlds were preserved. Launcher profile backups were made.","Mod disabled",JOptionPane.INFORMATION_MESSAGE));return;
+                }
+                Path game=DesktopSetup.dataDirectory().resolve(ambient?"compatibility-engine":"original-engine").resolve(client.version());
                 OriginalAlphaInstallation.Prepared prepared=OriginalAlphaInstallation.prepare(client,game,ambient);
                 saved.setProperty("client",candidate.toAbsolutePath().toString());
                 Files.createDirectories(config.getParent());
@@ -62,7 +66,7 @@ final class OriginalEngineSetup {
                         +"Existing original recordings copied: "+prepared.recordings()+"\n"
                         +"Launcher profile backups are next to the original profile files.\n\n"
                         +"F11 and graphics settings are handled by the original client, not the prototype.\n"
-                        +(ambient?"Experimental agent enabled: only in-memory hooks, no changes to the original client JAR.\nUse a new world in this separate installation.":"Vanilla installation; optional hooks are not enabled.");
+                        +(ambient?"Agent startup preflight passed. Original-client launch is still not verified.\nUse the NEW Alpha Found - Compatibility installation, not the old Alpha Found entry.\nUse a new world. Local startup details: mods/agent-preflight.log":"Vanilla installation; optional hooks are not enabled.");
                 SwingUtilities.invokeAndWait(()->JOptionPane.showMessageDialog(null,report,"Original Alpha ready",JOptionPane.INFORMATION_MESSAGE));
                 return;
             }catch(IOException e){

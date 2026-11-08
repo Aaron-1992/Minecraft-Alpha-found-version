@@ -33,8 +33,8 @@ final class OriginalAlphaInstallation {
     static Prepared prepare(Client client,Path gameDirectory,boolean ambient)throws IOException{
         gameDirectory=gameDirectory.toAbsolutePath().normalize();
         String chunkClass=ambient?AlphaAgentSupport.findChunkClass(client.jar):null;
-        String profileId=ambient?"alpha-found-ambient":PROFILE_ID;
-        String profileName=ambient?"Alpha Found":PROFILE_NAME;
+        String profileId=ambient?"alpha-found-ambient-compat":PROFILE_ID;
+        String profileName=ambient?"Alpha Found - Compatibility":PROFILE_NAME;
         List<Path> profileFiles=new ArrayList<>();
         for(String name:List.of("launcher_profiles.json","launcher_profiles_microsoft_store.json")){
             Path path=client.minecraft.resolve(name);if(Files.isRegularFile(path))profileFiles.add(path);
@@ -49,21 +49,29 @@ final class OriginalAlphaInstallation {
         Files.createDirectories(gameDirectory);
         if(ambient){
             Path agent=AlphaAgentSupport.install(gameDirectory.resolve("mods"));
+            Path legacyJava=LegacyRuntime.installIfAvailable(gameDirectory);
             for(Path file:profileFiles){
                 Map<String,Object> root=LauncherJson.object(updated.get(file));
                 @SuppressWarnings("unchecked") Map<String,Object> profiles=(Map<String,Object>)root.get("profiles");
                 @SuppressWarnings("unchecked") Map<String,Object> profile=(Map<String,Object>)profiles.get(profileId);
                 Object oldArgs=profile.get("javaArgs");
                 if(oldArgs!=null&&!(oldArgs instanceof String))throw new IOException("Unexpected JVM arguments in the selected profile");
-                profile.put("javaArgs",AlphaAgentSupport.arguments((String)oldArgs,agent,chunkClass));
+                String arguments=AlphaAgentSupport.arguments((String)oldArgs,agent,chunkClass);
+                AlphaAgentSupport.preflight(legacyJava==null?LegacyRuntime.currentJava():legacyJava,agent,arguments);
+                profile.put("javaArgs",arguments);
+                if(legacyJava!=null)profile.put("javaDir",legacyJava.toString());
                 updated.put(file,LauncherJson.write(root));
             }
         }
         Path options=gameDirectory.resolve("options.txt");
         if(!Files.exists(options))Files.writeString(options,"renderDistance:1\nfancyGraphics:true\nanaglyph3d:false\nbobView:true\nsound:1.0\nmusic:0.5\n",StandardOpenOption.CREATE_NEW);
         int recordings=OriginalResourceCopy.copy(client.minecraft,gameDirectory.resolve("resources"));
+        List<Path> backups=writeUpdates(originals,updated);
+        return new Prepared(client.version,gameDirectory,List.copyOf(profileFiles),List.copyOf(backups),recordings,profileName,ambient);
+    }
+    private static List<Path> writeUpdates(Map<Path,String> originals,Map<Path,String> updated)throws IOException{
         List<Path> backups=new ArrayList<>();
-        for(Path file:profileFiles){
+        for(Path file:updated.keySet()){
             String original=originals.get(file);
             if(!Files.readString(file).equals(original))throw new IOException("Launcher profiles changed while preparing the installation. Close the launcher and retry; this file was not overwritten: "+file);
             Path backup=file.resolveSibling(file.getFileName()+".alpha-backup-"+UUID.randomUUID());
@@ -76,7 +84,27 @@ final class OriginalAlphaInstallation {
                 catch(AtomicMoveNotSupportedException e){Files.move(temporary,file,StandardCopyOption.REPLACE_EXISTING);}
             }finally{Files.deleteIfExists(temporary);}
         }
-        return new Prepared(client.version,gameDirectory,List.copyOf(profileFiles),List.copyOf(backups),recordings,profileName,ambient);
+        return backups;
+    }
+    static int disableAmbient(Path minecraft)throws IOException{
+        Map<Path,String> originals=new LinkedHashMap<>(),updates=new LinkedHashMap<>();int changed=0;
+        for(String name:List.of("launcher_profiles.json","launcher_profiles_microsoft_store.json")){
+            Path file=minecraft.resolve(name);if(!Files.isRegularFile(file))continue;
+            String original=Files.readString(file);Map<String,Object> root=LauncherJson.object(original);boolean dirty=false;
+            if(root.get("profiles") instanceof Map<?,?> profiles){
+                for(String id:List.of("alpha-found-ambient","alpha-found-ambient-compat",PROFILE_ID)){
+                    if(profiles.get(id) instanceof Map<?,?> raw){
+                        @SuppressWarnings("unchecked") Map<String,Object> profile=(Map<String,Object>)raw;
+                        if(profile.get("javaArgs") instanceof String args){
+                            String stripped=AlphaAgentSupport.removeOwnArguments(args);
+                            if(!stripped.equals(args.trim())){if(stripped.isEmpty())profile.remove("javaArgs");else profile.put("javaArgs",stripped);dirty=true;changed++;}
+                        }
+                    }
+                }
+            }
+            if(dirty){originals.put(file,original);updates.put(file,LauncherJson.write(root));}
+        }
+        writeUpdates(originals,updates);return changed;
     }
     static String mergeProfile(String input,String version,Path gameDirectory)throws IOException{
         return mergeProfile(input,version,gameDirectory,PROFILE_ID,PROFILE_NAME);

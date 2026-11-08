@@ -8,7 +8,7 @@ import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.5.0'
+VERSION = '0.5.1'
 JAR = ROOT / 'target' / f'alpha-desktop-{VERSION}.jar'
 
 
@@ -38,6 +38,17 @@ def verify():
         with zipfile.ZipFile(io.BytesIO(jar.read(agent_name))) as agent:
             if 'Premain-Class: alpha.ambient.AmbientAgent' not in agent.read('META-INF/MANIFEST.MF').decode():
                 raise SystemExit('Runtime mod manifest is incomplete')
+            agent_names = set(agent.namelist())
+            if 'Main-Class: alpha.ambient.AgentProbe' not in agent.read('META-INF/MANIFEST.MF').decode():
+                raise SystemExit('Agent preflight entry point missing')
+            if any(name.startswith('org/objectweb/asm/') for name in agent_names):
+                raise SystemExit('ASM was not relocated out of the game library namespace')
+            if 'alpha/ambient/internal/asm/ClassReader.class' not in agent_names:
+                raise SystemExit('Private instrumenter dependency missing')
+            with zipfile.ZipFile(io.BytesIO(agent.read('alpha/ambient/bootstrap-hooks.jar'))) as hooks:
+                for name in hooks.namelist():
+                    if name.endswith('.class') and not name.startswith('alpha/ambient/AmbientHooks'):
+                        raise SystemExit('Unexpected class in isolated bootstrap helper')
             for member in agent.namelist():
                 if member.startswith('alpha/ambient/') and member.endswith('.class'):
                     if int.from_bytes(agent.read(member)[6:8], 'big') != 52:

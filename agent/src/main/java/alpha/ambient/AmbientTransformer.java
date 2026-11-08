@@ -12,7 +12,9 @@ public final class AmbientTransformer implements ClassFileTransformer {
     public byte[] transform(ClassLoader loader,String name,Class<?> oldClass,ProtectionDomain domain,byte[] bytes){
         if(name==null)return null;
         if(!name.equals(chunkClass)&&!name.equals("org/lwjgl/opengl/GL11"))return null;
-        try{return instrument(name,bytes);}catch(RuntimeException failure){
+        try{return instrument(name,bytes);}catch(Throwable failure){
+            if(failure instanceof ThreadDeath)throw (ThreadDeath)failure;
+            if(failure instanceof VirtualMachineError)throw (VirtualMachineError)failure;
             System.err.println("[Alpha ambient] Optional hook skipped for "+name+": "+failure.getClass().getSimpleName());return null;
         }
     }

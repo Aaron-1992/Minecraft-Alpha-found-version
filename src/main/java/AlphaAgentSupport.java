@@ -5,7 +5,7 @@ import java.util.zip.*;
 
 /** Structural compatibility check only. Does not decompile or execute client classes. */
 final class AlphaAgentSupport {
-    static final String RESOURCE="/mods/alpha-ambient-agent-0.5.0.jar";
+    static final String RESOURCE="/mods/alpha-ambient-agent-0.5.1.jar";
     static String findChunkClass(Path jar)throws IOException{
         List<String> candidates=new ArrayList<>();
         try(ZipFile archive=new ZipFile(jar.toFile())){
@@ -52,19 +52,72 @@ final class AlphaAgentSupport {
         }
     }
     static Path install(Path directory)throws IOException{
-        Files.createDirectories(directory);Path target=directory.resolve("alpha-ambient-agent-0.5.0.jar");
+        Files.createDirectories(directory);Path target=directory.resolve("alpha-ambient-agent-0.5.1.jar");
         try(InputStream input=AlphaAgentSupport.class.getResourceAsStream(RESOURCE)){
-            if(input==null)throw new IOException("Optional agent is not packaged. Use the complete 0.5.0 release, not an old or partial build.");
+            if(input==null)throw new IOException("Optional agent is not packaged. Use the complete 0.5.1 release, not an old or partial build.");
             byte[] packaged=input.readAllBytes();
             if(Files.exists(target)){
                 if(!Arrays.equals(Files.readAllBytes(target),packaged))throw new IOException("Existing optional mod differs from this release; it was not overwritten: "+target);
             }else Files.write(target,packaged,StandardOpenOption.CREATE_NEW);
         }return target.toAbsolutePath().normalize();
     }
+    static String removeOwnArguments(String existing){
+        if(existing==null)return "";
+        List<String> kept=new ArrayList<>();for(String raw:rawArguments(existing))if(!isOwnAgent(unquote(raw)))kept.add(raw);
+        return String.join(" ",kept);
+    }
     static String arguments(String existing,Path agent,String chunkClass){
-        if(existing==null)existing="";
-        // Only replace this project's own prior hook, preserving other agents/JVM tuning.
-        existing=existing.replaceAll("(?:^|\\s)-javaagent:(?:\"[^\"]*alpha-ambient-agent-[^\"]*\\.jar\"|[^\\s\"]*alpha-ambient-agent-[^\\s\"]*\\.jar)(?:=[^\\s]+)?", "").trim();
-        return (existing.isEmpty()?"":existing+" ")+"-javaagent:\""+agent+"\"="+chunkClass;
+        String kept=removeOwnArguments(existing);
+        if(kept.isEmpty())kept="-Xmx1G";
+        // Quote the COMPLETE JVM argument; do not rely on a launcher accepting
+        // a partially quoted path in the middle of an option.
+        return kept+" \"-javaagent:"+agent+"="+chunkClass+"\"";
+    }
+    private static boolean isOwnAgent(String argument){
+        if(!argument.startsWith("-javaagent:"))return false;
+        String path=argument.substring(11);int equals=path.indexOf('=');if(equals>=0)path=path.substring(0,equals);
+        path=path.replace('\\','/');String name=path.substring(path.lastIndexOf('/')+1);
+        return name.startsWith("alpha-ambient-agent-")&&name.endsWith(".jar");
+    }
+    static List<String> rawArguments(String value){
+        List<String> result=new ArrayList<>();int start=-1;boolean quoted=false;
+        for(int i=0;i<value.length();i++){
+            char c=value.charAt(i);if(c=='\"')quoted=!quoted;
+            if(Character.isWhitespace(c)&&!quoted){if(start>=0){result.add(value.substring(start,i));start=-1;}}
+            else if(start<0)start=i;
+        }
+        if(quoted)throw new IllegalArgumentException("Unclosed quote in this installation's JVM arguments");
+        if(start>=0)result.add(value.substring(start));return result;
+    }
+    private static String unquote(String value){return value.replace("\"", "");}
+    static void verifyPackagedAgent()throws IOException{
+        Path folder=Files.createTempDirectory("Alpha preflight space ");
+        Path agent=install(folder.resolve("mods"));
+        Path runtime=LegacyRuntime.installIfAvailable(folder);
+        Path log=preflight(runtime==null?LegacyRuntime.currentJava():runtime,agent,arguments(null,agent,"probe"));
+        System.out.println(Files.readString(log));
+        try(var paths=Files.walk(folder)){for(Path path:paths.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(path);}
+    }
+    static Path preflight(Path executable,Path agent,String profileArguments)throws IOException{
+        List<String> command=new ArrayList<>();command.add(executable.toString());
+        for(String raw:rawArguments(profileArguments)){
+            String arg=unquote(raw);
+            if(arg.startsWith("-javaagent:"))continue; // Never execute unrelated agents as part of our probe.
+            command.add(arg);
+        }
+        command.add("-javaagent:"+agent+"=alpha/ambient/AgentProbe$Chunk");
+        command.add("-jar");command.add(agent.toString());
+        Path log=agent.getParent().resolve("agent-preflight.log");
+        Process process=new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(log.toFile()).start();
+        try{
+            if(!process.waitFor(40,java.util.concurrent.TimeUnit.SECONDS)){
+                process.destroyForcibly();process.waitFor(5,java.util.concurrent.TimeUnit.SECONDS);
+                throw new IOException("Agent startup check timed out. Launcher profile was not enabled. Local details: "+log);
+            }
+            String output=Files.readString(log);
+            if(process.exitValue()!=0||!output.contains("ALPHA_AGENT_PREFLIGHT_OK"))
+                throw new IOException("Agent startup check failed (exit "+process.exitValue()+"). Launcher profile was not enabled. Local details: "+log);
+        }catch(InterruptedException e){process.destroyForcibly();Thread.currentThread().interrupt();throw new IOException("Agent preflight interrupted",e);}
+        return log;
     }
 }

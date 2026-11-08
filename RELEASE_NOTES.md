@@ -1,36 +1,32 @@
-## 0.5.0 — optional original-engine environmental mod
+## 0.5.1 — compatibility rebuild
 
-**Download `AlphaDesktop-0.5.0.exe` for Windows x64.** Java for the setup/custom app is bundled. The installer is unsigned; verify its source/checksum before deciding whether to run it.
+**Download `AlphaDesktop-0.5.1.exe`, install it, then run setup again.** This is a compatibility rebuild, not a claim that the reported exit-code-1 cause has been confirmed without a crash log.
 
-### Enable it
+### What to do
 
-1. Open AlphaDesktop and choose **Original Alpha (recommended)**.
-2. Close Minecraft Launcher, then choose **Install environmental changes**.
-3. Select your installed Alpha client if asked. Setup checks its chunk class layout and refuses the optional mod if the layout is ambiguous or unsupported.
-4. Open your normal launcher → Java Edition → Installations → **Alpha Found** → Play.
-5. **Create a new world.** Do not import a valued save into this experimental installation.
+1. Close Minecraft Launcher.
+2. Open AlphaDesktop → **Original Alpha** → **Install compatibility build**.
+3. Select the installed Alpha JAR if asked. Wait for the packaged agent's startup preflight to complete.
+4. Open Minecraft Launcher and select the **NEW `Alpha Found - Compatibility`** installation, not the old `Alpha Found` entry.
+5. Create a new world in this separate installation.
 
-The mod uses a **new isolated game directory** under `%APPDATA%\AlphaDesktop\ambient-engine\<version>`. The existing vanilla profile **Alpha Found - Original Alpha**, original JAR and other worlds remain separate.
+There is also a **Disable installed mod** setup option. It removes only this project's agent arguments from this project's profiles, keeps other options/worlds and backs up profile files. No manual JVM-argument editing is required.
 
-### The intended feeling
+### Reworked startup
 
-An environmental blend of early Minecraft folklore and lost-version stories—not a literal implementation of every creepypasta or a verified historical account. The game itself has no horror-labelled menu, story exposition, chat messages, jump scares, loud stingers, fake crashes or replacement assets. Changes are deliberately sparse; immediate sightings are not guaranteed.
+- **ASM is private/relocated.** It is no longer exported into the bootstrap classloader where it could collide with LaunchWrapper's own instrumentation libraries. Only a tiny helper JAR containing this project's hooks is bootstrap-visible.
+- **The Windows distribution now carries Java 8 for original Alpha**, separately from Java 17 used by our setup app. Setup copies it to the isolated compatibility folder and pins only the new compatibility profile to it. Existing installations and their Java settings are untouched.
+- The entire `-javaagent:...` option is quoted as one JVM argument. Paths containing spaces have regression coverage.
+- Before writing/enabling the compatibility profile, setup starts the packaged agent in a separate JVM using that runtime. The probe tests actual transformation through an isolated classloader and rejects bootstrap ASM leakage.
+- Failed preflight leaves launcher profiles unmodified and retains local details at `mods/agent-preflight.log`. It does **not** silently report success or ask you to manually collect logs first.
+- Startup/transformer initialization errors now disable optional instrumentation for nonfatal failures rather than deliberately aborting startup.
 
-The agent adds only original-block environmental patterns and a very slow, bounded fog drift. It does not add pursuing entities, custom skins, white-eye textures, gore, new audio, text signs or scripted attacks.
+The old installation, original client JAR and worlds are left untouched. The new compatibility profile uses `%APPDATA%\AlphaDesktop\compatibility-engine\<version>`. Disabling the agent still cannot undo terrain already saved in any modded world.
 
-### Technical / safety notes
+### Verification / limits
 
-- A bundled **Java 8-compatible runtime agent** modifies a structurally inspected chunk class and LWJGL fog calls **in memory**. The original client JAR is never rewritten or distributed.
-- It uses only original numeric block IDs and the game's existing rendering. No media is generated or bundled.
-- Rare chunk candidates are coordinate-deterministic, skip the central origin area and refuse chunks containing non-natural/manufactured block IDs. Each chunk object receives at most one mutation attempt after natural terrain is present. These checks do **not** prove a chunk has never been edited by a player.
-- Block changes that the original client saves **persist**. Removing the agent does not revert them. Keep backups and use a new world.
-- Structural compatibility is not full runtime compatibility. The actual user-owned Alpha client, its chunk lifecycle, its lighting updates and visible results have **not been integration-tested here**. Optional transformation failures leave the original class unmodified and report to launcher logs, never game chat.
-- This is neither universal across all Alpha builds nor a claim of support for every old creepypasta. Vanilla setup remains available separately; the custom sandbox does not receive these hooks.
+CI tests app/profile repair, isolated helper packaging, private ASM relocation, actual Java-agent startup on Java 8 and 17, and the **packaged Windows distribution's Java 8 + extracted-agent preflight**, as well as fullscreen and the native EXE entry point.
 
-CI tests the mutation policies, transformed fixture classes, live Java-agent loading on Java 8 and 17, native app/profile safety, fullscreen, embedded-agent packaging and the Windows launcher. Fixtures are this project's own code/terrain arrays—not Minecraft bytecode or generated textures/sounds.
+**This preflight exercises our own fixture, not the original Alpha game.** Your actual client, graphics drivers, native game libraries, original launcher execution and complete gameplay remain unverified. Another exit-code-1 cause is still possible. The original mod's sparse environmental behavior is otherwise unchanged; no jumpscares, chat events, generated media or new sound effects were added.
 
-### Disabling
-
-Close Minecraft/Launcher and remove the `-javaagent:...alpha-ambient-agent-0.5.0.jar=...` argument from **Alpha Found → Edit → More Options → JVM arguments**, or use the separate vanilla installation. Restore a pre-mod world backup to undo terrain changes. Profile-file backups remain next to the original launcher profile files.
-
-Downloads include the Windows installer/portable ZIP, cross-platform JAR distribution and SHA-256 checksums. Original Minecraft client/assets are not bundled. See README for spoiler details, build instructions and limitations.
+The EXE includes OpenJDK runtimes and their accompanying license/notice files, not Minecraft assets or client code. Runtime build metadata is retained in `release`; upstream source is available from Adoptium/OpenJDK (https://github.com/adoptium/jdk8u and https://github.com/adoptium/temurin8-binaries). Cross-platform JAR downloads do not carry the Windows Java 8 runtime; use the complete Windows installer/portable ZIP for the compatibility profile on Windows.

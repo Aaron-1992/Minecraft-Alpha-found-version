@@ -1,4 +1,4 @@
-param([string]$Version = "0.5.0")
+param([string]$Version = "0.5.1")
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
@@ -12,14 +12,26 @@ Copy-Item "target/alpha-desktop-$Version.jar" $InputDir
 & jpackage --type app-image --name AlphaDesktop --app-version $Version `
     --input $InputDir --main-jar "alpha-desktop-$Version.jar" --main-class AlphaDesktop `
     --dest $ImageDir --vendor "Alpha Desktop" --description "Alpha-inspired desktop sandbox" `
-    --add-modules "java.desktop,java.prefs,java.logging,java.xml,java.naming,jdk.unsupported" `
+    --add-modules "java.desktop,java.prefs,java.logging,java.xml,java.naming,java.instrument,jdk.unsupported" `
     --jlink-options "--strip-debug --no-header-files --no-man-pages" `
     --java-options "-Dfile.encoding=UTF-8"
 if ($LASTEXITCODE -ne 0) { throw "jpackage app-image failed" }
 
+# Keep original Alpha on a genuine Java 8 runtime, separate from this app's Java 17.
+if (-not $env:ALPHA_LEGACY_JAVA_HOME) { throw "Java 8 build runtime was not provided" }
+$Legacy = Join-Path $env:ALPHA_LEGACY_JAVA_HOME "jre"
+if (-not (Test-Path "$Legacy/bin/java.exe")) { throw "Java 8 JRE directory missing" }
+Copy-Item $Legacy "$App/app/legacy-runtime" -Recurse
+foreach ($Name in @("release", "LICENSE", "NOTICE", "THIRD_PARTY_README", "ASSEMBLY_EXCEPTION")) {
+    $Notice = Join-Path $env:ALPHA_LEGACY_JAVA_HOME $Name
+    if ((Test-Path $Notice) -and -not (Test-Path "$App/app/legacy-runtime/$Name")) { Copy-Item $Notice "$App/app/legacy-runtime/$Name" }
+}
+
 # Test BOTH the bundled runtime and the actual generated Windows .exe.
 & "$App/runtime/bin/java.exe" "-Djava.awt.headless=true" -jar "$App/app/alpha-desktop-$Version.jar" --check-runtime
 if ($LASTEXITCODE -ne 0) { throw "Bundled Java / Vorbis smoke test failed" }
+& "$App/runtime/bin/java.exe" "-Djava.awt.headless=true" -jar "$App/app/alpha-desktop-$Version.jar" --check-agent-preflight
+if ($LASTEXITCODE -ne 0) { throw "Packaged Java 8 / isolated-agent preflight failed" }
 $Process = Start-Process -FilePath "$App/AlphaDesktop.exe" -ArgumentList "--check-runtime" -PassThru
 if (-not $Process.WaitForExit(30000)) {
     $Process.Kill()

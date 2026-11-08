@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion><groupId>local.alpha</groupId><artifactId>alpha-ambient-agent</artifactId><version>0.5.0</version>
+  <modelVersion>4.0.0</modelVersion><groupId>local.alpha</groupId><artifactId>alpha-ambient-agent</artifactId><version>0.5.1</version>
   <properties><maven.compiler.release>8</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
   <dependencies>
     <dependency><groupId>org.ow2.asm</groupId><artifactId>asm</artifactId><version>9.7.1</version></dependency>
@@ -8,8 +8,11 @@
     <dependency><groupId>junit</groupId><artifactId>junit</artifactId><version>4.13.2</version><scope>test</scope></dependency>
   </dependencies>
   <build><plugins>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-antrun-plugin</artifactId><version>3.1.0</version><executions><execution><id>isolated-bootstrap-hooks</id><phase>process-classes</phase><goals><goal>run</goal></goals><configuration><target>
+      <jar destfile="${project.build.outputDirectory}/alpha/ambient/bootstrap-hooks.jar" basedir="${project.build.outputDirectory}" includes="alpha/ambient/AmbientHooks*.class"/>
+    </target></configuration></execution></executions></plugin>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version></plugin>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.5.2</version></plugin>
-    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-shade-plugin</artifactId><version>3.6.0</version><executions><execution><phase>package</phase><goals><goal>shade</goal></goals><configuration><createDependencyReducedPom>false</createDependencyReducedPom><transformers><transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"><manifestEntries><Premain-Class>alpha.ambient.AmbientAgent</Premain-Class><Can-Retransform-Classes>false</Can-Retransform-Classes></manifestEntries></transformer></transformers></configuration></execution></executions></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-shade-plugin</artifactId><version>3.6.0</version><executions><execution><phase>package</phase><goals><goal>shade</goal></goals><configuration><createDependencyReducedPom>false</createDependencyReducedPom><relocations><relocation><pattern>org.objectweb.asm</pattern><shadedPattern>alpha.ambient.internal.asm</shadedPattern></relocation></relocations><transformers><transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"><manifestEntries><Premain-Class>alpha.ambient.AmbientAgent</Premain-Class><Main-Class>alpha.ambient.AgentProbe</Main-Class><Can-Retransform-Classes>false</Can-Retransform-Classes></manifestEntries></transformer></transformers></configuration></execution></executions></plugin>
   </plugins></build>
 </project>

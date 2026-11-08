@@ -61,6 +61,17 @@ public class AmbientAgentTest {
         assertEquals(40f,fixture.getField("captured").getFloat(null),0);
     }
     @Test public void unrelatedClassesAreNotTransformed(){assertNull(new AmbientTransformer("chunk").transform(null,"unrelated",null,null,new byte[0]));}
+    @Test public void malformedTargetBytecodeFailsOpen(){
+        assertNull(new AmbientTransformer("chunk").transform(null,"chunk",null,null,new byte[0]));
+    }
+    @Test public void bootstrapArchiveContainsOnlyOurHookClasses()throws Exception{
+        InputStream resource=AmbientAgentTest.class.getResourceAsStream("/alpha/ambient/bootstrap-hooks.jar");assertNotNull(resource);int classes=0;
+        try(java.util.zip.ZipInputStream zip=new java.util.zip.ZipInputStream(resource)){
+            java.util.zip.ZipEntry entry;while((entry=zip.getNextEntry())!=null){
+                if(entry.getName().endsWith(".class")){classes++;assertTrue(entry.getName().startsWith("alpha/ambient/AmbientHooks"));}
+            }
+        }assertTrue(classes>=2);
+    }
     public static class FixtureChunk {
         public byte[] blocks;public int calls;
         public FixtureChunk(Object world,byte[] blocks,int x,int z){this.blocks=blocks;}

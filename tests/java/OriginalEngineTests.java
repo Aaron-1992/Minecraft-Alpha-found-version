@@ -90,13 +90,40 @@ public final class OriginalEngineTests {
         test("agent arguments preserve other JVM options and agents",()->{
             String arguments=AlphaAgentSupport.arguments("-Xmx1G -javaagent:\"C:/other tools/other.jar\"",Path.of("C:/Alpha Desktop/mods/alpha-ambient-agent-0.5.0.jar"),"obf/Chunk");
             check(arguments.contains("-Xmx1G")&&arguments.contains("other tools/other.jar"),"user options changed");
-            check(arguments.endsWith("\"=obf/Chunk"),"mod path not quoted");
+            check(arguments.endsWith("=obf/Chunk\""),"mod path not quoted");
         });
         test("agent updates replace only this project's old argument",()->{
             String old="-Xmx2G -javaagent:\"C:/old path/alpha-ambient-agent-0.1.0.jar\"=old/Chunk";
             String updated=AlphaAgentSupport.arguments(old,Path.of("new/alpha-ambient-agent-0.5.0.jar"),"new/Chunk");
-            check(!updated.contains("0.1.0")&&updated.contains("-Xmx2G")&&updated.endsWith("=new/Chunk"),"stale hook not replaced");
+            check(!updated.contains("0.1.0")&&updated.contains("-Xmx2G")&&updated.endsWith("=new/Chunk\""),"stale hook not replaced");
             check(updated.indexOf("-javaagent:")==updated.lastIndexOf("-javaagent:"),"hook duplicated");
+        });
+        test("complete agent argument stays a single token with spaces and Unicode",()->{
+            String arguments=AlphaAgentSupport.arguments(null,Path.of("C:/Users/Some Name/mods/alpha-ambient-agent-0.5.1.jar"),"a/Chunk");
+            check(AlphaAgentSupport.rawArguments(arguments).size()==2,"agent argument split at spaces");
+            check(AlphaAgentSupport.rawArguments("\"-javaagent:C:/Name \u00fc/path.jar=Chunk\"").size()==1,"Unicode quoted token split");
+            check(AlphaAgentSupport.rawArguments(arguments).get(1).startsWith("\"-javaagent:"),"whole argument not quoted");
+        });
+        test("repair removes both historical and complete-quote agent arguments",()->{
+            for(String own:List.of("-javaagent:\"C:/a b/alpha-ambient-agent-0.5.0.jar\"=old/Chunk","\"-javaagent:C:/a b/alpha-ambient-agent-0.5.1.jar=new/Chunk\"")){
+                String kept=AlphaAgentSupport.removeOwnArguments("-Xmx1G "+own+" -javaagent:other.jar -Dkeep=true");
+                check(kept.equals("-Xmx1G -javaagent:other.jar -Dkeep=true"),"repair removed another setting: "+kept);
+            }
+        });
+        test("one-step disabling only edits this project's profiles and makes backups",()->{
+            Path root=Files.createTempDirectory("alpha-disable-");
+            try{
+                String own="-Xmx1G -javaagent:alpha-ambient-agent-0.5.0.jar=Chunk";
+                Map<String,Object> ours=new LinkedHashMap<>();ours.put("javaArgs",own);
+                Map<String,Object> other=new LinkedHashMap<>();other.put("javaArgs",own);
+                Map<String,Object> profiles=new LinkedHashMap<>();profiles.put("alpha-found-ambient",ours);profiles.put("other-installation",other);
+                Path file=root.resolve("launcher_profiles.json");String before=LauncherJson.write(Map.of("profiles",profiles,"unchanged",true));Files.writeString(file,before);
+                check(OriginalAlphaInstallation.disableAmbient(root)==1,"wrong repair count");
+                Map<?,?> result=(Map<?,?>)LauncherJson.object(Files.readString(file)).get("profiles");
+                check(((Map<?,?>)result.get("alpha-found-ambient")).get("javaArgs").equals("-Xmx1G"),"own agent remained");
+                check(((Map<?,?>)result.get("other-installation")).get("javaArgs").equals(own),"unrelated installation changed");
+                try(var backups=Files.list(root)){Path backup=backups.filter(p->p.getFileName().toString().contains(".alpha-backup-")).findFirst().orElseThrow();check(Files.readString(backup).equals(before),"backup not exact");}
+            }finally{delete(root);}
         });
         System.out.println(passed+" original-engine/optimization tests passed.");
     }
