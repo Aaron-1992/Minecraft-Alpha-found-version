@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  VERSION: '0.9.0'
+  VERSION: '0.10.0'
 
 jobs:
   build:
@@ -59,6 +59,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '8'
+      - name: Test encounter logic and scene adapter on Java 8
+        run: java -cp "agent/target/classes:agent/target/test-classes:agent/target/dependency/*" org.junit.runner.JUnitCore alpha.ambient.DirectorTest alpha.ambient.SceneIntegrationTest alpha.ambient.WatcherTest alpha.ambient.OfflinePatcherTest alpha.ambient.AmbientAgentTest
       - name: Smoke-test live instrumentation on legacy Java 8
         run: java "-javaagent:agent/target/alpha-ambient-agent-${VERSION}.jar=alpha/ambient/AgentSmoke\$Chunk" -cp agent/target/test-classes alpha.ambient.AgentSmoke
       - name: Preflight isolated packaged agent on Java 8

@@ -10,9 +10,9 @@ final class LegacyRuntime {
         try{app=Path.of(LegacyRuntime.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();}
         catch(Exception e){throw new IOException("Cannot locate packaged compatibility runtime",e);}
         Path source=app.resolve("legacy-runtime");
-        if(!Files.isRegularFile(source.resolve("bin/java.exe")))throw new IOException("Bundled Java 8 runtime missing. Install the complete Windows 0.9.0 release, not its standalone JAR.");
+        if(!Files.isRegularFile(source.resolve("bin/java.exe")))throw new IOException("Bundled Java 8 runtime missing. Install the complete Windows 0.10.0 release, not its standalone JAR.");
         Path parent=gameDirectory.resolve("runtime");Files.createDirectories(parent);
-        Path target=parent.resolve("java8-0.9.0"),marker=target.resolve(".alpha-runtime-complete");
+        Path target=parent.resolve("java8-0.10.0"),marker=target.resolve(".alpha-runtime-complete");
         if(Files.exists(target)){
             if(!Files.isRegularFile(marker)||!Files.isRegularFile(target.resolve("bin/java.exe")))throw new IOException("Incomplete compatibility runtime; left untouched: "+target);
             return target.resolve("bin/java.exe").toAbsolutePath();
@@ -27,7 +27,7 @@ final class LegacyRuntime {
                     else if(Files.isRegularFile(file))Files.copy(file,output,StandardCopyOption.COPY_ATTRIBUTES);
                 }
             }
-            Files.writeString(temp.resolve(".alpha-runtime-complete"),"AlphaDesktop 0.9.0 Java 8 compatibility runtime\n",StandardOpenOption.CREATE_NEW);
+            Files.writeString(temp.resolve(".alpha-runtime-complete"),"AlphaDesktop 0.10.0 Java 8 compatibility runtime\n",StandardOpenOption.CREATE_NEW);
             try{Files.move(temp,target,StandardCopyOption.ATOMIC_MOVE);}
             catch(AtomicMoveNotSupportedException e){Files.move(temp,target);}
         }finally{

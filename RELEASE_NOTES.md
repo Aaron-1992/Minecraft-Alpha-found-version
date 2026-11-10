@@ -1,28 +1,33 @@
-# Alpha Desktop 0.9.0 — returning sightings and longer sound sequences
+# Alpha Desktop 0.10.0 — reactive encounters, not just more random cues
 
-The event palette expands from seven to fourteen types/variations. F6 previews them in order, one release-and-press per event:
+This pass inspected From The Fog and Man From The Fog Reimagined documentation/selected encounter logic. The new implementation is original; none of their code or assets is included. See `docs/ENCOUNTER_RESEARCH.md` in the source for references and boundaries.
 
-1. Watcher
-2. Crossing
-3. Footstep echo
-4. Unexplained click
-5. Smoke
-6. Fog drift
-7. HUD drift
-8. **Second look** — up to two delayed reappearances, alternating sides, using fresh safe placement checks.
-9. **Orbit steps** — a short stopped-player footstep sequence with changing sound direction.
-10. **Distant knocks** — quiet original wood sounds from farther away; not a new recording.
-11. **False digging** — a short original gravel-sound sequence without block damage.
-12. **Long watch** — a stationary sighting lasting up to eight seconds naturally, unless approach/look-away removes it earlier.
-13. **Behind you** — an attempted distant sighting behind the initial view direction, not an in-your-face spawn.
-14. **Afterimage** — brief watcher/particle/fog combination with one delayed return. Not an actual framebuffer afterimage or new shader.
+## Five encounter modes with actual state transitions
 
-## More pressure, still bounded
+**Cue → Observe → Advance → Retreat → Aftermath → Cooldown.** Episodes respond to player position, yaw/pitch, sampled wall occlusion and investigation distance. They end after a bounded duration even if ignored.
 
-Initial natural event gaps are now 2–4 minutes. After 15 active minutes they become 60–150 seconds; after 35 minutes, 30–90 seconds. Menus/pausing do not advance the timer. Volume does not ramp up. Sound sequences contain only a few cues with 10–26-tick gaps and wait while the player is moving. The sound positions and event/sequence requests are recorded in the latest log.
+- **Stalker encounter:** a quiet cue precedes a distant figure. It can advance in ground-checked steps while you are not directly observing it. Looking at it stops the advance; sustained observation makes it retreat. One delayed repositioned return is possible.
+- **Sound lure:** cues originate at a fixed world location, not attached to your camera. Approaching that location can trigger a separate distant sighting. If ignored, a timeout still progresses/ends the encounter.
+- **Interception:** an ahead-of-view encounter selected naturally while moving. The figure withdraws rather than attacking or blocking the player.
+- **Pass-by:** a brief sideways retreat scene instead of a stationary timer-only apparition.
+- **Turn around:** an initially behind-view encounter with the same observation/retreat behavior and one possible return.
 
-Returning watchers remain distant: natural placement 27 blocks away, previews 20. No appearances within 12 blocks; approaching removes the figure and cancels that return opportunity. Reappearance can follow timeout or looking away. Ground and already-loaded-chunk checks can skip a scene; nothing teleports the player or edits terrain to force placement. Press F6 and wait if previewing a sequence; immediately advancing again replaces its pending sequence.
+New encounter modes have a 65% natural selection weight; the existing 14 ambient variations remain. Sheltered positions favor the lure; stationary players do not naturally select interception. Ordinary gaps still escalate from 2–4 minutes, to 60–150 seconds after 15 active minutes, to 30–90 seconds after 35 minutes. A director episode prevents another natural event from interrupting it; cooldown/maximum duration keep it bounded.
 
-All watcher geometry/textures and recordings remain original Minecraft assets. Black tint is scoped/restored. No attacks, collision, saved watcher entities, new skins/audio, leaf stripping, flashing overlays, actual save corruption, fake system errors or deliberate crashes. Existing procedural terrain anomalies still persist in saves; cosmetic scenes do not. 60 FPS cap, Java 8 sorting compatibility and latest-session export remain.
+## Controls and stronger diagnostics
 
-Tests cover the complete F6 palette, bounded interval ranges, original sound-key whitelist, watcher non-persistence/non-collision and render-state cleanup. Automated tests and packaging checks do not verify GPU stability, scene visibility, sound availability or gameplay. If a driver timeout returns, stop retrying and export the latest session report.
+- **F6** now previews the five new encounters first, then the previous 14 events. Press once, release, and wait: most previews begin with cues and show a figure after roughly 1.3 seconds. Lure previews react to investigation or can take about eight seconds. Repeated presses replace the current episode, rather than showing all its stages.
+- **F7** cancels the scene, pending director cues/extra echoes and transient HUD/fog effects. It leaves at least 20 seconds before the next naturally scheduled event; it is not a permanent off switch.
+- Logs record selected mode, phase transitions, anchored sound requests, actual spawn/skip/removal, blocked movement and cancellation. Session metadata records the enabled director and controls.
+
+## Ground and sight checks
+
+Placement searches multiple candidate positions, checks footprint/head clearance and refuses unloaded chunks. Movement samples ground and clearance; walls/ledges terminate the movement instead of being crossed or edited. A sampled visibility test plus yaw AND pitch replaces the old yaw-only "seen" test. No intended approach within 14 blocks. This is a bounded encounter controller, **not full Minecraft pathfinding** or combat AI.
+
+Black tint remains scoped to the original model and render-state cleanup. All audio uses existing original recordings and normal volume/mute; fixed-position cues use a modest fixed gain, not escalating loudness. Missing recordings still cannot play. No new assets, leaf stripping, flashing, chat hints, save corruption, player teleportation or deliberate crashes. Existing terrain anomalies persist as before; watcher/director effects are transient. FPS cap, sort compatibility and latest-session-only reports remain.
+
+## Verification
+
+Added seven pure-director tests and five adapter integration tests using authored API stand-ins. These exercise observation freeze, advance/retreat, lure investigation/timeout, approach removal, missing figures, termination/cooldown, fixed sound positions, wall occlusion, obstacles, unloaded-chunk refusal and F7 cleanup. Existing watcher rendering-cleanup/serialization fixtures and launcher tests remain.
+
+Automated/bytecode/Windows package checks are not actual gameplay, sound availability, watcher visibility or AMD-driver verification. If a driver reset returns, stop retrying and export the latest session report.

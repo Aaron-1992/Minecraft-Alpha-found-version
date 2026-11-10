@@ -121,6 +121,8 @@ public final class OfflinePatcher {
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","scene","(Ljava/lang/Object;Ljava/lang/Object;)V",false);
         m.visitIntInsn(Opcodes.BIPUSH,64);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/input/Keyboard","isKeyDown","(I)Z",false);
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","previewKey","(Z)V",false);
+        m.visitIntInsn(Opcodes.BIPUSH,65);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/input/Keyboard","isKeyDown","(I)Z",false);
+        m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","cancelKey","(Z)V",false);
         m.visitInsn(Opcodes.ICONST_1);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","nextSound","(Z)Ljava/lang/String;",false);m.visitVarInsn(Opcodes.ASTORE,1);
         m.visitVarInsn(Opcodes.ALOAD,1);m.visitJumpInsn(Opcodes.IFNULL,end);
         m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"e","Lcj;");
@@ -129,9 +131,9 @@ public final class OfflinePatcher {
             if(!field.equals("ai")){
                 m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"g","Lbe;");m.visitFieldInsn(Opcodes.GETFIELD,"be","an","F");
                 m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks",field.equals("ah")?"soundX":"soundZ","(F)D",false);m.visitInsn(Opcodes.DADD);
-            }
+            }else{m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","soundY","(D)D",false);}
         }
-        m.visitVarInsn(Opcodes.ALOAD,1);m.visitLdcInsn(0.16f);m.visitLdcInsn(0.95f);
+        m.visitVarInsn(Opcodes.ALOAD,1);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","soundVolume","()F",false);m.visitLdcInsn(0.95f);
         m.visitMethodInsn(Opcodes.INVOKEVIRTUAL,"cj","a","(DDDLjava/lang/String;FF)V",false);
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","takeParticle","()Z",false);m.visitJumpInsn(Opcodes.IFEQ,end);
         // Original smoke particles on the edge of view; no custom texture or entity.
