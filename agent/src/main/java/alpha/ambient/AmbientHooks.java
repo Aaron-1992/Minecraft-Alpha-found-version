@@ -72,7 +72,7 @@ public final class AmbientHooks {
                 if(nextWorld==null||nextPlayer==null){remove();world=null;player=null;return;}
                 if(world!=nextWorld){remove();world=nextWorld;player=nextPlayer;
                     ClassLoader loader=world.getClass().getClassLoader();Class<?> wc=Class.forName("cj",false,loader),entity=Class.forName("jx",false,loader);
-                    block=wc.getMethod("a",int.class,int.class,int.class);loaded=wc.getMethod("h",int.class,int.class);spawn=wc.getMethod("a",entity);
+                    block=wc.getMethod("a",int.class,int.class,int.class);loaded=wc.getDeclaredMethod("h",int.class,int.class);loaded.setAccessible(true);spawn=wc.getMethod("a",entity);
                     position=entity.getMethod("b",double.class,double.class,double.class,float.class,float.class);dead=entity.getMethod("D");
                     x=entity.getField("ah");y=entity.getField("ai");z=entity.getField("aj");yaw=entity.getField("an");previousX=x.getDouble(player);previousZ=z.getDouble(player);
                 }
