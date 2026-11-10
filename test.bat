@@ -11,5 +11,7 @@ java -Djava.awt.headless=true -cp .test-classes RecoveryTests
 if errorlevel 1 exit /b %errorlevel%
 
 java -Djava.awt.headless=true -cp .test-classes DirectLaunchTests
+if errorlevel 1 exit /b %errorlevel%
+java -Djava.awt.headless=true -cp .test-classes WorldBackupTests
 if errorlevel 1 exit /b 1
 exit /b %errorlevel%

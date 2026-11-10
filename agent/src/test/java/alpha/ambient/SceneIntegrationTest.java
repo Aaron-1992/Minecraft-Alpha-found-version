@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 public class SceneIntegrationTest {
     static class Loader extends ClassLoader {
         protected synchronized Class<?> loadClass(String name,boolean resolve)throws ClassNotFoundException{
-            if(name.equals("AlphaWatcher")||name.equals("cj")||name.equals("jx")||name.equals("lr")||name.equals("hc")||name.equals("ff")){
+            if(name.equals("AlphaWatcher")||(name.indexOf('.')<0&&getClass().getResource("/"+name+".class")!=null)){
                 Class<?> c=findLoadedClass(name);if(c==null){try{
                     byte[] bytes;if(name.equals("AlphaWatcher"))bytes=OfflinePatcher.watcherClass();else try(InputStream in=getClass().getResourceAsStream("/"+name+".class")){ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[4096];int n;while((n=in.read(b))!=-1)out.write(b,0,n);bytes=out.toByteArray();}
                     c=defineClass(name,bytes,0,bytes.length);
@@ -19,7 +19,13 @@ public class SceneIntegrationTest {
     }
     static void set(String name,Object value)throws Exception{Field field=AmbientHooks.class.getDeclaredField(name);field.setAccessible(true);field.set(null,value);}
     static void reset()throws Exception{AmbientHooks.scene(null,null);set("previewCursor",0);set("forceEvent",false);set("replaceScene",false);set("encounterRequest",-1);set("activeTicks",0L);set("quietTicks",20000);set("echoes",0);AmbientHooks.previewKey(false);}
-    static void tick(Object world,Object player){AmbientHooks.scene(world,player);AmbientHooks.nextSound(true);}
+    static void frame(Object player){try{
+        Class<?> c=player.getClass();float yaw=c.getField("an").getFloat(player),pitch=c.getField("ao").getFloat(player);
+        double yr=Math.toRadians(yaw),pr=Math.toRadians(pitch);
+        float[][] planes={{(float)(-Math.sin(yr)*Math.cos(pr)),(float)-Math.sin(pr),(float)(Math.cos(yr)*Math.cos(pr)),0},{1,0,0,1000},{-1,0,0,1000},{0,1,0,1000},{0,-1,0,1000},{0,0,-1,1000}};
+        AmbientHooksVisibility.capturePlanes(planes,c.getField("ah").getDouble(player),c.getField("ai").getDouble(player),c.getField("aj").getDouble(player));
+    }catch(Exception e){throw new AssertionError(e);}}
+    static void tick(Object world,Object player){frame(player);AmbientHooks.scene(world,player);AmbientHooks.nextSound(true);}
     @Test public void realAdapterSpawnsMovesFreezesAndCleansUp()throws Exception{
         reset();Loader loader=new Loader();Class<?> worldType=loader.loadClass("cj"),playerType=loader.loadClass("jx");Object world=worldType.getConstructor().newInstance(),player=playerType.getConstructor().newInstance();
         try{

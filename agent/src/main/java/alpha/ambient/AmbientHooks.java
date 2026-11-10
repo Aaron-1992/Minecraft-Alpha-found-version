@@ -9,15 +9,21 @@ public final class AmbientHooks {
     private static final java.util.Random atmosphere=new java.util.Random();
     private static int quietTicks=20*(120+atmosphere.nextInt(121));
     private static long activeTicks;
+    private static boolean newKeyHeld;
+    private static int newCursor,forcedIndex=-1;
+    private static volatile float lastFogEnd=48;
     private static boolean keyHeld,forceEvent,particle,cancelHeld,cancelRequested,replaceScene;
-    private static int encounterRequest=-1;
+    private static int encounterRequest=-1,anomalyRequest=-1;
     private static boolean encounterPreview,fixedAudio;
     private static double cueX,cueY,cueZ;
+    private static float cueGain=.16f,cuePitch=.95f;
     private static final java.util.ArrayDeque<Cue> cues=new java.util.ArrayDeque<Cue>();
-    private static final class Cue {final String sound;final double x,y,z;Cue(String s,double x,double y,double z){sound=s;this.x=x;this.y=y;this.z=z;}}
-    private static void queueCue(String sound,double x,double y,double z){if(cues.size()<8)cues.addLast(new Cue(sound,x,y,z));}
+    private static final class Cue {final String sound;final double x,y,z;final float gain,pitch;Cue(String s,double x,double y,double z,float gain,float pitch){sound=s;this.x=x;this.y=y;this.z=z;this.gain=gain;this.pitch=pitch;}}
+    private static void queueCue(String sound,double x,double y,double z){queueCue(sound,x,y,z,.16f,.95f);}
+    static void queueCue(String sound,double x,double y,double z,float gain,float pitch){if(cues.size()<8)cues.addLast(new Cue(sound,x,y,z,gain,pitch));}
     public static void cancelKey(boolean down){if(down&&!cancelHeld)cancelRequested=true;cancelHeld=down;}
-    public static float soundVolume(){return fixedAudio?.30f:.16f;}
+    public static float soundVolume(){return fixedAudio?cueGain:.16f;}
+    public static float soundPitch(){return fixedAudio?cuePitch:.95f;}
     public static double soundY(double original){return fixedAudio?cueY:original;}
     private static int events,previewCursor,echoes,echoDelay;
     private static String sequenceSound="step.stone";
@@ -27,15 +33,22 @@ public final class AmbientHooks {
     private static boolean sceneRequest,sceneCrossing,scenePreview;
     private static long driftUntil,textUntil;
     private static String lastEvent="NONE";
-    private static final String[] EVENT_NAMES={"WATCHER","CROSSING","FOOTSTEP_ECHO","FALSE_BLOCK","SMOKE","FOG_DRIFT","HUD_DRIFT","SECOND_LOOK","ORBIT_STEPS","DISTANT_KNOCKS","FALSE_DIGGING","LONG_WATCH","BEHIND_YOU","AFTERIMAGE","STALKER_ENCOUNTER","SOUND_LURE","INTERCEPTION","PASS_BY","TURN_AROUND","TREE_LINE","NULL_LURK","LOST_FOOTSTEPS","REPEATER"};
+    private static final String[] LEGACY_NAMES={"WATCHER","CROSSING","FOOTSTEP_ECHO","FALSE_BLOCK","SMOKE","FOG_DRIFT","HUD_DRIFT","SECOND_LOOK","ORBIT_STEPS","DISTANT_KNOCKS","FALSE_DIGGING","LONG_WATCH","BEHIND_YOU","AFTERIMAGE","STALKER_ENCOUNTER","SOUND_LURE","INTERCEPTION","PASS_BY","TURN_AROUND","TREE_LINE","NULL_LURK","LOST_FOOTSTEPS","REPEATER"};
+    private static final String[] EVENT_NAMES=allNames();
+    private static String[] allNames(){String[] n=java.util.Arrays.copyOf(LEGACY_NAMES,LEGACY_NAMES.length+AmbientHooksAnomalies.Event.values().length);for(AmbientHooksAnomalies.Event e:AmbientHooksAnomalies.Event.values())n[LEGACY_NAMES.length+e.ordinal()]=e.name();return n;}
     static String[] eventNames(){return EVENT_NAMES.clone();}
-    private static final int[] EVENT_TIERS={2,2,1,1,1,1,1,2,2,1,2,2,2,2,2,2,3,2,3,2,3,2,3};
-    private static final int[] EVENT_WEIGHTS={2,2,5,1,1,4,1,2,3,4,3,2,2,1,3,3,2,3,2,3,2,4,2};
+    private static final int[] LEGACY_TIERS={2,2,1,1,1,1,1,2,2,1,2,2,2,2,2,2,3,2,3,2,3,2,3};
+    private static final int[] LEGACY_WEIGHTS={2,2,5,1,1,4,1,2,3,4,3,2,2,1,3,3,2,3,2,3,2,4,2};
+    private static final int[] EVENT_TIERS=allValues(true),EVENT_WEIGHTS=allValues(false);
+    private static int[] allValues(boolean tiers){int[] values=java.util.Arrays.copyOf(tiers?LEGACY_TIERS:LEGACY_WEIGHTS,EVENT_NAMES.length);for(AmbientHooksAnomalies.Event e:AmbientHooksAnomalies.Event.values())values[23+e.ordinal()]=tiers?e.tier:e.weight;return values;}
     private static long previewFogUntil;
     public static synchronized void previewKey(boolean down){
-        if(down&&!keyHeld){forceEvent=true;}
+        if(down&&!keyHeld){forceEvent=true;forcedIndex=-1;}
         keyHeld=down;
     }
+    public static synchronized void anomalyPreviewKey(boolean down){if(down&&!newKeyHeld){forceEvent=true;forcedIndex=23+(newCursor++%AmbientHooksAnomalies.Event.values().length);}newKeyHeld=down;}
+    static double outsideFogDistance(){return Math.max(64,Math.min(272,lastFogEnd+16));}
+    static double fogEdge(){return Math.max(24,Math.min(96,lastFogEnd*.9));}
     static int intervalSeconds(long ticks){
         if(ticks>=20L*60*35)return 30+atmosphere.nextInt(61);
         if(ticks>=20L*60*15)return 60+atmosphere.nextInt(91);
@@ -44,10 +57,10 @@ public final class AmbientHooks {
     /** Active game ticks only; F6 skips the wait, not terrain placement checks. */
     public static synchronized String nextSound(boolean active){
         fixedAudio=false;
-        if(!active){keyHeld=false;cancelHeld=false;textUntil=0;return null;}
+        if(!active){keyHeld=false;newKeyHeld=false;cancelHeld=false;forceEvent=false;forcedIndex=-1;textUntil=0;return null;}
         activeTicks++;
         if(!cues.isEmpty()){
-            Cue cue=cues.removeFirst();fixedAudio=true;cueX=cue.x;cueY=cue.y;cueZ=cue.z;
+            Cue cue=cues.removeFirst();fixedAudio=true;cueX=cue.x;cueY=cue.y;cueZ=cue.z;cueGain=cue.gain;cuePitch=cue.pitch;
             System.out.println("[Alpha director] anchored soundRequest="+cue.sound);return cue.sound;
         }
         if(!Boolean.parseBoolean(System.getProperty("alpha.scheduledSounds","true")))return null;
@@ -56,17 +69,18 @@ public final class AmbientHooks {
             if(orbitSound)audioAngle+=65;
             System.out.println("[Alpha ambience] sequence="+lastEvent+" remaining="+echoes+" soundRequest="+sequenceSound);return sequenceSound;
         }
-        if(!forceEvent&&Scene.director.active())return null;
+        if(!forceEvent&&(Scene.director.active()||AmbientHooksAnomalies.active()))return null;
         if(!forceEvent&&--quietTicks>0)return null;
         boolean preview=forceEvent;forceEvent=false;quietTicks=20*intervalSeconds(activeTicks);
         echoes=0;
-        int index=preview?previewCursor++%EVENT_NAMES.length:0;
+        int index=0;if(preview){if(forcedIndex>=0){index=forcedIndex;forcedIndex=-1;}else index=previewCursor++%EVENT_NAMES.length;}
         AmbientHooksState state=Scene.world==null?null:AmbientHooksState.of(Scene.world);
-        int kind=preview?(index<9?14+index:index-9):state==null?-1:state.choose(EVENT_NAMES,EVENT_TIERS,EVENT_WEIGHTS,atmosphere);
+        int kind=preview?(index<9?14+index:index<23?index-9:index):state==null?-1:state.choose(EVENT_NAMES,EVENT_TIERS,EVENT_WEIGHTS,atmosphere);
         if(kind<0)return null; // Exhaustion means quiet, never bypass the repeat lock.
         if(!preview)state.mark(EVENT_NAMES[kind]);
         replaceScene=true;
         lastEvent=EVENT_NAMES[kind];
+        if(kind>=23){anomalyRequest=kind-23;++events;sceneRequest=false;encounterRequest=-1;System.out.println("[Alpha anomaly] selected="+lastEvent+" preview="+preview);return null;}
         particle=kind==4||kind==13;
         audioAngle=135;audioRadius=6;orbitSound=false;sceneReturns=0;sceneLifetime=65;
         sceneRequest=kind==0||kind==1||kind==7||kind==11||kind==12||kind==13;sceneCrossing=kind==1;scenePreview=preview;
@@ -97,9 +111,9 @@ public final class AmbientHooks {
     /** Runtime-only adapter for the inspected a1.0.16 client. All world work stays on its tick thread. */
     public static void scene(Object world,Object player){Scene.tick(world,player);}
     public static boolean isWatcher(Object value){return value!=null&&value.getClass().getName().equals("AlphaWatcher");}
-    private static final class Scene {
+    static final class Scene {
         static Object world,player,figure;
-        static java.lang.reflect.Method block,loaded,spawn,position,dead;
+        static java.lang.reflect.Method block,loaded,spawn,position,dead,raycast,vector;
         static java.lang.reflect.Field x,y,z,yaw,pitch;
         static boolean disabled,seen,moving,sheltered,pendingRemoval;
         static int age,life,returns,returnDelay,placement,ticks;
@@ -115,20 +129,23 @@ public final class AmbientHooks {
         static void tick(Object nextWorld,Object nextPlayer){
             if(disabled)return;
             try{
-                if(nextWorld==null||nextPlayer==null){forceRemove();cancel();world=null;player=null;return;}
-                if(world!=nextWorld){forceRemove();cancel();world=nextWorld;player=nextPlayer;activeTicks=AmbientHooksState.of(world).ticks;quietTicks=20*intervalSeconds(activeTicks);
+                if(nextWorld==null||nextPlayer==null){AmbientHooksAnomalies.cancel(true);forceRemove();cancel();world=null;player=null;return;}
+                if(world!=nextWorld){AmbientHooksAnomalies.cancel(true);forceRemove();cancel();world=nextWorld;player=nextPlayer;ticks=0;sheltered=false;moving=false;groundMaterial=0;activeTicks=AmbientHooksState.of(world).ticks;quietTicks=20*intervalSeconds(activeTicks);
                     ClassLoader loader=world.getClass().getClassLoader();Class<?> wc=Class.forName("cj",false,loader),entity=Class.forName("jx",false,loader);
                     block=wc.getMethod("a",int.class,int.class,int.class);loaded=wc.getDeclaredMethod("h",int.class,int.class);loaded.setAccessible(true);spawn=wc.getMethod("a",entity);
                     position=entity.getMethod("b",double.class,double.class,double.class,float.class,float.class);dead=entity.getMethod("D");
+                    Class<?> vec=Class.forName("ah",false,loader);vector=vec.getMethod("a",double.class,double.class,double.class);raycast=wc.getMethod("a",vec,vec);
                     x=entity.getField("ah");y=entity.getField("ai");z=entity.getField("aj");yaw=entity.getField("an");pitch=entity.getField("ao");previousX=x.getDouble(player);previousZ=z.getDouble(player);
                 }
                 player=nextPlayer;px=x.getDouble(player);py=y.getDouble(player);pz=z.getDouble(player);facing=yaw.getFloat(player);lookingPitch=pitch.getFloat(player);ticks++;AmbientHooksState.of(world).tick();
+                if(cancelRequested){cancelRequested=false;cancel();forceEvent=false;forcedIndex=-1;echoes=0;particle=false;textUntil=0;driftUntil=0;previewFogUntil=0;quietTicks=Math.max(quietTicks,400);System.out.println("[Alpha director] cancelled by F7");return;}
                 if(pendingRemoval){remove();if(pendingRemoval)return;}
                 moving=Math.hypot(px-previousX,pz-previousZ)>.025;previousX=px;previousZ=pz;
                 trail[trailCursor][0]=px;trail[trailCursor][1]=py;trail[trailCursor][2]=pz;trailCursor=(trailCursor+1)%trail.length;trailCount=Math.min(trail.length,trailCount+1);
                 if(ticks%20==0){sheltered=read((int)Math.floor(px),(int)Math.floor(py)+3,(int)Math.floor(pz))!=0;groundMaterial=read((int)Math.floor(px),(int)Math.floor(py)-1,(int)Math.floor(pz));}
-                if(replaceScene){int requested=encounterRequest;boolean legacy=sceneRequest;cancel();encounterRequest=requested;sceneRequest=legacy;replaceScene=false;}
-                if(cancelRequested){cancelRequested=false;cancel();echoes=0;particle=false;textUntil=0;driftUntil=0;previewFogUntil=0;quietTicks=Math.max(quietTicks,400);System.out.println("[Alpha director] cancelled by F7");return;}
+                if(replaceScene){int requested=encounterRequest,anomaly=anomalyRequest;boolean legacy=sceneRequest;cancel();encounterRequest=requested;anomalyRequest=anomaly;sceneRequest=legacy;replaceScene=false;}
+                if(anomalyRequest>=0){int requested=anomalyRequest;anomalyRequest=-1;AmbientHooksAnomalies.begin(requested,scenePreview);}
+                try{AmbientHooksAnomalies.tick();}catch(Exception error){AmbientHooksAnomalies.cancel(false);System.err.println("[Alpha anomaly] safely cancelled: "+error.getClass().getSimpleName()+": "+error.getMessage());}
                 if(encounterRequest>=0){
                     int mode=encounterRequest;encounterRequest=-1;cancel();scenePreview=encounterPreview;
                     director.begin(AmbientHooksDirector.Mode.values()[mode],scenePreview);
@@ -152,7 +169,7 @@ public final class AmbientHooks {
                 System.err.println("[Alpha scene] disabled after "+error.getClass().getSimpleName()+": "+error.getMessage());
             }
         }
-        static void cancel()throws Exception{returns=0;returnDelay=0;sceneRequest=false;encounterRequest=-1;remove();director.reset();trailCount=0;trailCursor=0;loggedPhase=director.phase();cues.clear();}
+        static void cancel()throws Exception{AmbientHooksAnomalies.cancel(false);anomalyRequest=-1;returns=0;returnDelay=0;sceneRequest=false;encounterRequest=-1;remove();director.reset();trailCount=0;trailCursor=0;loggedPhase=director.phase();cues.clear();}
         static void tickDirector()throws Exception{
             input.figurePresent=figure!=null;input.distance=figure==null?100:Math.hypot(fx-px,fz-pz);
             input.observed=figure!=null&&observed();input.visible=figure!=null&&rayVisible;
@@ -200,7 +217,11 @@ public final class AmbientHooks {
             double ty=dy==0?Double.POSITIVE_INFINITY:((dy>0?vy+1:vy)-ay)/dy;
             double tz=dz==0?Double.POSITIVE_INFINITY:((dz>0?vz+1:vz)-az)/dz;
             for(int budget=0;budget<256;budget++){
-                if(vx==ex&&vy==ey&&vz==ez)return true;
+                if(vx==ex&&vy==ey&&vz==ez){
+                    Object start=vector.invoke(null,ax,ay,az),end=vector.invoke(null,bx,by,bz);
+                    return raycast.invoke(world,start,end)==null;
+                }
+                for(int ox:new int[]{-1,1})for(int oz:new int[]{-1,1})if(!((Boolean)loaded.invoke(world,(vx+ox)>>4,(vz+oz)>>4)))return false;
                 double t=Math.min(tx,Math.min(ty,tz));
                 if(tx==t){vx+=sx;tx+=Math.abs(1/dx);}
                 if(ty==t){vy+=sy;ty+=Math.abs(1/dy);}
@@ -235,6 +256,12 @@ public final class AmbientHooks {
         // A deliberately oversized view cone protects the entire normal Alpha frustum,
         // including the model's extremities. Transparent/unknown blocks never hide it.
         static boolean protectedAt(double bx,double by,double bz)throws Exception{
+            if(!AmbientHooksVisibility.available(px,py,pz))return true;
+            boolean inFrustum=AmbientHooksVisibility.intersects(bx-.5,by,bz-.5,bx+.5,by+2,bz+.5);
+            // Every mutation checks the ray as well as the renderer snapshot; conservatively
+            // disallow anything in-frustum even when occluded, including transparent glass.
+            lineClear(px,py+1.62,pz,bx,by+1,bz);
+            if(inFrustum)return true;
             for(double ox:new double[]{-.5,.5})for(double oy:new double[]{0,1,2})for(double oz:new double[]{-.5,.5}){
                 double dx=bx+ox-px,dy=by+oy-(py+1.62),dz=bz+oz-pz;
                 double len=Math.sqrt(dx*dx+dy*dy+dz*dz);if(len<2)return true;
@@ -278,8 +305,10 @@ public final class AmbientHooks {
     }
     private AmbientHooks(){}
     public static float fog(int parameter,float original){
+        if(parameter==0x0B64&&original>0&&!Float.isNaN(original)&&!Float.isInfinite(original))lastFogEnd=original;
         if(System.nanoTime()<previewFogUntil&&(parameter==0x0B63||parameter==0x0B64))return original*.88f;
         float base=fogAt(parameter,original,activeTicks/20.0);
+        if(parameter==0x0B63||parameter==0x0B64)base*=AmbientHooksAnomalies.fogFactor();
         if(activeTicks<driftUntil&&(parameter==0x0B63||parameter==0x0B64)){
             double remaining=(driftUntil-activeTicks)/240.0;
             return (float)(base*(1-.10*Math.sin(Math.PI*remaining)));

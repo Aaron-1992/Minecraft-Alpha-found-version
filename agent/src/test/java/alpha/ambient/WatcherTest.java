@@ -21,15 +21,16 @@ public class WatcherTest {
         }w.visitEnd();return w.toByteArray();
     }
     static byte[] model(){
-        ClassWriter w=type("ff");w.visitField(Opcodes.ACC_PUBLIC|Opcodes.ACC_STATIC,"fail","Z",null,null).visitEnd();
+        ClassWriter w=type("ff");w.visitField(Opcodes.ACC_PUBLIC,"j","F",null,null).visitEnd();w.visitField(Opcodes.ACC_PUBLIC,"k","Z",null,null).visitEnd();w.visitField(Opcodes.ACC_PUBLIC|Opcodes.ACC_STATIC,"fail","Z",null,null).visitEnd();
         MethodVisitor m=w.visitMethod(Opcodes.ACC_PUBLIC,"<init>","()V",null,null);m.visitCode();m.visitVarInsn(Opcodes.ALOAD,0);m.visitMethodInsn(Opcodes.INVOKESPECIAL,"java/lang/Object","<init>","()V",false);m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();
         m=w.visitMethod(Opcodes.ACC_PUBLIC,"b","(FFFFFF)V",null,null);m.visitCode();Label ok=new Label();m.visitFieldInsn(Opcodes.GETSTATIC,"ff","fail","Z");m.visitJumpInsn(Opcodes.IFEQ,ok);m.visitTypeInsn(Opcodes.NEW,"java/lang/RuntimeException");m.visitInsn(Opcodes.DUP);m.visitMethodInsn(Opcodes.INVOKESPECIAL,"java/lang/RuntimeException","<init>","()V",false);m.visitInsn(Opcodes.ATHROW);m.visitLabel(ok);m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();w.visitEnd();return w.toByteArray();
     }
     @Test public void watcherIsNonCollidingNonPersistentAndRestoresRenderStateEvenOnFailure()throws Exception{
-        Loader l=new Loader();Class<?> world=l.put("cj",simple("cj",false));Class<?> nbt=l.put("hc",simple("hc",false));l.put("jx",simple("jx",false));l.put("lr",simple("lr",true));Class<?> gl=l.put("org.lwjgl.opengl.GL11",gl());Class<?> model=l.put("ff",model());Class<?> watcher=l.put("AlphaWatcher",OfflinePatcher.watcherClass());Object entity=watcher.getConstructor(world).newInstance(new Object[]{null});
+        Loader l=new Loader();Class<?> world=l.put("cj",simple("cj",false));Class<?> nbt=l.put("hc",simple("hc",false));l.put("jx",simple("jx",false));l.put("lr",simple("lr",true));Class<?> gl=l.put("org.lwjgl.opengl.GL11",gl());Class<?> model=l.put("ff",model());ClassWriter biped=new ClassWriter(ClassWriter.COMPUTE_MAXS);biped.visit(Opcodes.V1_5,Opcodes.ACC_PUBLIC,"cn",null,"ff",null);MethodVisitor ctor=biped.visitMethod(Opcodes.ACC_PUBLIC,"<init>","()V",null,null);ctor.visitCode();ctor.visitVarInsn(Opcodes.ALOAD,0);ctor.visitMethodInsn(Opcodes.INVOKESPECIAL,"ff","<init>","()V",false);ctor.visitInsn(Opcodes.RETURN);ctor.visitMaxs(0,0);ctor.visitEnd();biped.visitEnd();l.put("cn",biped.toByteArray());Class<?> watcher=l.put("AlphaWatcher",OfflinePatcher.watcherClass());Object entity=watcher.getConstructor(world).newInstance(new Object[]{null});
         assertEquals(false,watcher.getMethod("c_").invoke(entity));assertEquals(false,watcher.getMethod("d_").invoke(entity));assertEquals(false,watcher.getMethod("c",nbt).invoke(entity,new Object[]{null}));watcher.getMethod("e_").invoke(entity);
         Method draw=watcher.getMethod("draw",model,float.class,float.class,float.class,float.class,float.class,float.class,Object.class);Object mesh=model.getConstructor().newInstance();
         draw.invoke(null,mesh,0f,0f,0f,0f,0f,0f,entity);assertEquals(0,gl.getField("depth").getInt(null));
+        watcher.getField("alpha$plain").setBoolean(entity,true);draw.invoke(null,mesh,0f,0f,0f,0f,0f,0f,entity);assertEquals(0,gl.getField("depth").getInt(null));watcher.getField("alpha$plain").setBoolean(entity,false);
         model.getField("fail").setBoolean(null,true);
         try{draw.invoke(null,mesh,0f,0f,0f,0f,0f,0f,entity);fail();}catch(InvocationTargetException expected){assertTrue(expected.getCause() instanceof RuntimeException);}
         assertEquals(0,gl.getField("depth").getInt(null));

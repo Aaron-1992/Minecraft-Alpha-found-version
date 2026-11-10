@@ -8,6 +8,10 @@ public final class AmbientHooksState {
     private static final Map<Object,AmbientHooksState> WORLDS=new WeakHashMap<Object,AmbientHooksState>();
     long ticks;
     int corruption;
+    boolean baseKnown;
+    int baseX,baseY,baseZ;
+    byte[] blueprint=new byte[0];
+    int[] layout=new int[0];
     final Map<String,Long> history=new HashMap<String,Long>();
     static synchronized AmbientHooksState of(Object world){
         AmbientHooksState s=WORLDS.get(world);if(s==null){s=new AmbientHooksState();WORLDS.put(world,s);}return s;
@@ -31,6 +35,14 @@ public final class AmbientHooksState {
             Class<?> c=nbt.getClass();java.lang.reflect.Method get=c.getMethod("f",String.class);
             s.ticks=Math.max(0,(Long)get.invoke(nbt,"AlphaActiveTicks"));
             s.corruption=Math.max(level(s.ticks),Math.max(0,Math.min(100,(Integer)c.getMethod("e",String.class).invoke(nbt,"CorruptionLevel"))));
+            s.baseKnown=(Integer)c.getMethod("e",String.class).invoke(nbt,"AlphaBaseKnown")==1;
+            if(s.baseKnown){
+                s.baseX=(Integer)c.getMethod("e",String.class).invoke(nbt,"AlphaBaseX");s.baseY=(Integer)c.getMethod("e",String.class).invoke(nbt,"AlphaBaseY");s.baseZ=(Integer)c.getMethod("e",String.class).invoke(nbt,"AlphaBaseZ");
+                s.blueprint=(byte[])c.getMethod("j",String.class).invoke(nbt,"AlphaBlueprint");
+                s.layout=new int[9];for(int i=0;i<9;i++)s.layout[i]=(Integer)c.getMethod("e",String.class).invoke(nbt,"AlphaLayout"+i);
+                if(s.blueprint.length!=486||s.baseY<1||s.baseY>123||Math.abs((long)s.baseX)>32000000||Math.abs((long)s.baseZ)>32000000)s.baseKnown=false;
+                for(byte raw:s.blueprint){int id=raw&255;if(id!=0&&id!=4&&id!=5&&id!=17&&id!=20&&id!=48)s.baseKnown=false;}
+            }
             for(String id:AmbientHooks.eventNames()){
                 String key="AlphaLast_"+id;
                 if((Boolean)c.getMethod("b",String.class).invoke(nbt,key))s.history.put(id,Math.max(0,Math.min(s.ticks,(Long)get.invoke(nbt,key))));
@@ -43,6 +55,9 @@ public final class AmbientHooksState {
         try{
             Class<?> c=nbt.getClass();java.lang.reflect.Method put=c.getMethod("a",String.class,long.class);
             put.invoke(nbt,"AlphaActiveTicks",s.ticks);c.getMethod("a",String.class,int.class).invoke(nbt,"CorruptionLevel",s.corruption);
+            java.lang.reflect.Method putInt=c.getMethod("a",String.class,int.class);
+            putInt.invoke(nbt,"AlphaBaseKnown",s.baseKnown?1:0);
+            if(s.baseKnown){putInt.invoke(nbt,"AlphaBaseX",s.baseX);putInt.invoke(nbt,"AlphaBaseY",s.baseY);putInt.invoke(nbt,"AlphaBaseZ",s.baseZ);c.getMethod("a",String.class,byte[].class).invoke(nbt,"AlphaBlueprint",s.blueprint);for(int i=0;i<9;i++)putInt.invoke(nbt,"AlphaLayout"+i,s.layout[i]);}
             for(Map.Entry<String,Long> e:s.history.entrySet())put.invoke(nbt,"AlphaLast_"+e.getKey(),e.getValue());
         }catch(ReflectiveOperationException e){System.err.println("[Alpha state] save unavailable: "+e.getClass().getSimpleName());}
     }

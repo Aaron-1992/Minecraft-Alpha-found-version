@@ -1,3 +1,20 @@
+# Alpha Desktop 0.13.0 — forty-rule anomaly expansion
+
+Forty new context-dependent rule handlers join the previous 23 selections. All four saved corruption tiers and the saved 20-active-minute repeat lock apply to the unified weighted pool. This is an original exact-Alpha implementation, not borrowed mod source/assets or an unlimited reproduction of the supplied prompt.
+
+**Permanent world changes are enabled:** signs, chests, durability, structures, local canopy cuts and one natural chunk scar can change the mod's saves. Before first launching existing mod saves on this upgrade, the native launcher makes a one-time `world-backups/before-0.13.0.zip`. Original/Recovery worlds are separate. Use a new or copied world. F7 is cancel, not undo.
+
+- **F6:** full 63-selection cycle, previous order first.
+- **F8:** the new forty rules only. Release between presses; wait and supply the needed context. Durability/chest/phantom-step are the first three.
+- **F7:** clear transient sounds/fog/sky/audio changes, restore suspended AI, and safely retire figures/markers. Visible removals are deferred.
+- Original renderer frustum snapshots + conservative facing protection + loaded-voxel preflight and original-client block-shape rays guard mod-induced edits and spawns/removals. Missing/stale snapshots deny changes; no forced chunk generation.
+- Added contextual sounds, coal-conserving chest changes, pork-conserving furnace cooking, sign/crop/painting/boat changes, coordinated animal staring, cave structures, compact base echo/mirror room, original-player-model watcher/replay, visual sky/sun changes, music pitch warp, faded silence, cave loops and bounded terrain anomalies.
+- Adaptations: capped partial base capture, maximum three cave loops, rotation-only boats, water not lava, no later-version items or invented crouch, and temporary original torchlight rather than a new distant-light renderer. Read `docs/ANOMALIES.md` for exact rules/limits and the numbered preview order.
+- 78 JUnit tests plus desktop/save-backup suites. Local private-client stack/NBT/linkage checks and Windows packaging are distinct from in-game testing. No gameplay, camera-edge, audio-perception or AMD-driver stability claim.
+- Original assets/audio only; no chat hints, jumpscare overlays, mod attacks, deliberate crashes, original-JAR overwrite or proprietary redistribution.
+
+---
+
 ## 0.12.0 — persistence and visibility foundations
 
 This is the first foundation batch for the requested 40+ anomaly design, **not a completed 40-event implementation**. The existing 23-event preview palette remains.

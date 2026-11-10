@@ -5,14 +5,14 @@ import java.util.*;
 
 /** One direct-game process, one log directory. Never scans legacy installations. */
 final class LaunchSession {
-    static final String VERSION="0.12.0";
+    static final String VERSION="0.13.0";
     final Path directory;
     private final Properties status=new Properties();
     private LaunchSession(Path directory){this.directory=directory;}
     static LaunchSession begin(Path data)throws IOException{
         Path sessions=data.resolve("sessions");Files.createDirectories(sessions);
         LaunchSession session=new LaunchSession(Files.createTempDirectory(sessions,"launch-"));
-        session.status.setProperty("features","sounds=on;fog=on;smoke=on;watcher=on;eventPalette=23;directorModes=9;gazeAndOcclusion=on;groundCheckedMovement=on;abort=F7;returnScenes=on;echoes=on;hudDrift=on;leafStripping=off;fpsCap=60;preview=F6");session.status.setProperty("build",VERSION);session.status.setProperty("started",Instant.now().toString());session.status.setProperty("state","STARTING");session.store();
+        session.status.setProperty("features","sounds=on;fog=on;smoke=off;watcher=on;eventPalette=63;newAnomalyRules=40;corruption=level.dat;repeatLock=20-active-minutes;rendererFrustum=on;clientRaycast=on;directorModes=9;gazeAndOcclusion=on;groundCheckedMovement=on;abort=F7;returnScenes=on;echoes=on;hudDrift=on;legacyLeafStripping=off;boundedCanopyAndScarEvents=on;fpsCap=60;preview=F6;newRulePreview=F8;preUpgradeSaveBackup=on");session.status.setProperty("build",VERSION);session.status.setProperty("started",Instant.now().toString());session.status.setProperty("state","STARTING");session.store();
         Properties latest=new Properties();latest.setProperty("session",session.directory.getFileName().toString());
         writeProperties(data.resolve("latest-session.properties"),latest);
         return session;

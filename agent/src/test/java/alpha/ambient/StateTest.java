@@ -4,10 +4,12 @@ import static org.junit.Assert.*;
 import java.util.*;
 public class StateTest {
     public static class Nbt {
-        final Map<String,Number> data=new HashMap<String,Number>();
+        final Map<String,Object> data=new HashMap<String,Object>();
         public void a(String k,long v){data.put(k,v);}public void a(String k,int v){data.put(k,v);}
-        public long f(String k){return data.containsKey(k)?data.get(k).longValue():0;}
-        public int e(String k){return data.containsKey(k)?data.get(k).intValue():0;}
+        public long f(String k){return data.containsKey(k)?((Number)data.get(k)).longValue():0;}
+        public int e(String k){return data.containsKey(k)?((Number)data.get(k)).intValue():0;}
+        public void a(String k,byte[] v){data.put(k,v.clone());}
+        public byte[] j(String k){return data.containsKey(k)?((byte[])data.get(k)).clone():new byte[0];}
         public boolean b(String k){return data.containsKey(k);}
     }
     @Test public void cooldownSurvivesSaveReloadAndWorldsAreIsolated(){
@@ -28,5 +30,13 @@ public class StateTest {
         assertEquals(100,AmbientHooksState.level(Long.MAX_VALUE));
         Nbt n=new Nbt();n.a("AlphaActiveTicks",-1L);n.a("CorruptionLevel",500);Object w=new Object();AmbientHooksState.load(w,n);
         assertEquals(0,AmbientHooksState.of(w).ticks);assertEquals(100,AmbientHooksState.of(w).corruption);
+    }
+
+    @Test public void baseBlueprintAndEveryNewCooldownSurviveReloadAndUnsafeTemplateIsRejected(){
+        Object world=new Object();AmbientHooksState state=AmbientHooksState.of(world);state.baseKnown=true;state.baseX=2;state.baseY=64;state.baseZ=-12;state.blueprint=new byte[486];state.blueprint[0]=5;state.layout=new int[]{0,0,0,1,0,0,-1,0,0};
+        for(AmbientHooksAnomalies.Event e:AmbientHooksAnomalies.Event.values())state.mark(e.name());
+        Nbt n=new Nbt();AmbientHooksState.save(world,n);Object loaded=new Object();AmbientHooksState.load(loaded,n);AmbientHooksState copy=AmbientHooksState.of(loaded);assertTrue(copy.baseKnown);assertArrayEquals(state.blueprint,copy.blueprint);assertArrayEquals(state.layout,copy.layout);
+        for(AmbientHooksAnomalies.Event e:AmbientHooksAnomalies.Event.values())assertFalse(copy.eligible(e.name()));
+        byte[] bad=n.j("AlphaBlueprint");bad[0]=46;n.a("AlphaBlueprint",bad);loaded=new Object();AmbientHooksState.load(loaded,n);assertFalse(AmbientHooksState.of(loaded).baseKnown);
     }
 }

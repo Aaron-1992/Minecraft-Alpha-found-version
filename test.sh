@@ -7,3 +7,4 @@ java -Djava.awt.headless=true -cp .test-classes DesktopTests
 java -Djava.awt.headless=true -cp .test-classes OriginalEngineTests
 java -Djava.awt.headless=true -cp .test-classes RecoveryTests
 java -Djava.awt.headless=true -cp .test-classes DirectLaunchTests
+java -Djava.awt.headless=true -cp .test-classes WorldBackupTests

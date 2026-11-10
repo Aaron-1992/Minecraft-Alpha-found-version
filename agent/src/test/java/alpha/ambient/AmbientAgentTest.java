@@ -59,7 +59,7 @@ public class AmbientAgentTest {
                 AmbientHooks.previewKey(false);AmbientHooks.previewKey(true);AmbientHooks.nextSound(true);names.add(AmbientHooks.lastEventName());
                 AmbientHooks.previewKey(true);assertNull(AmbientHooks.nextSound(true));
             }
-            assertEquals(23,names.size());assertTrue(names.contains("WATCHER"));assertTrue(names.contains("HUD_DRIFT"));
+            assertEquals(AmbientHooks.eventCount(),names.size());assertTrue(names.contains("WATCHER"));assertTrue(names.contains("HUD_DRIFT"));
             AmbientHooks.nextSound(false);assertEquals(40,AmbientHooks.textOffset(40));
             AmbientHooks.previewKey(false);
             for(int i=0;i<100;i++){

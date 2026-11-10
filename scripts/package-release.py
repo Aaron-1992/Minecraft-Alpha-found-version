@@ -8,7 +8,7 @@ import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = '0.12.0'
+VERSION = '0.13.0'
 JAR = ROOT / 'target' / f'alpha-desktop-{VERSION}.jar'
 
 
@@ -48,8 +48,9 @@ def verify():
             if 'alpha/ambient/internal/asm/ClassReader.class' not in agent_names:
                 raise SystemExit('Private instrumenter dependency missing')
             with zipfile.ZipFile(io.BytesIO(agent.read('alpha/ambient/bootstrap-hooks.jar'))) as hooks:
-                if 'alpha/ambient/AmbientHooksDirector.class' not in hooks.namelist():
-                    raise SystemExit('Runtime encounter director missing from hook bundle')
+                for helper in ('AmbientHooksDirector', 'AmbientHooksState', 'AmbientHooksVisibility', 'AmbientHooksAnomalies'):
+                    if 'alpha/ambient/' + helper + '.class' not in hooks.namelist():
+                        raise SystemExit('Runtime helper missing from hook bundle: ' + helper)
                 for name in hooks.namelist():
                     if name.endswith('.class') and not name.startswith('alpha/ambient/AmbientHooks'):
                         raise SystemExit('Unexpected class in isolated bootstrap helper')

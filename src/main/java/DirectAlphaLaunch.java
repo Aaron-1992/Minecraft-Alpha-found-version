@@ -17,7 +17,7 @@ final class DirectAlphaLaunch {
         }
         OriginalAlphaInstallation.Client client=OriginalAlphaInstallation.inspect(jar);
         int[] consent={-1};SwingUtilities.invokeAndWait(()->consent[0]=JOptionPane.showConfirmDialog(null,
-                "Experimental build: earlier builds had AMD driver timeouts; the latest was user-reported stable.\n60 FPS cap retained. Reactive encounters enabled. F6 previews; F7 cancels.\nCancel if your graphics driver is still unstable. Do not repeatedly retry after a reset.\n\nSingle-player only: this tool does not sign in or read account tokens.\nUses your locally installed client/libraries and bundled Java 8 on Windows.\nOriginal JAR, launcher profiles and Recovery worlds remain untouched.\nA separate patched-engine folder holds this mod's worlds.\n\nOriginal sound recordings are copied when locally available; nothing is downloaded.\nTerrain changes persist in saved worlds. Use a new world for testing.",
+                "Experimental build: earlier builds had AMD driver timeouts; this update is not gameplay/GPU verified.\n60 FPS cap retained. Reactive encounters enabled. F6 previews; F7 cancels.\nCancel if your graphics driver is still unstable. Do not repeatedly retry after a reset.\n\nSingle-player only: this tool does not sign in or read account tokens.\nUses your locally installed client/libraries and bundled Java 8 on Windows.\nOriginal JAR, launcher profiles and Recovery worlds remain untouched.\nA separate patched-engine folder holds this mod's worlds.\n\nOriginal sound recordings are copied when locally available; nothing is downloaded.\nAnomalies can permanently change terrain, signs, chests and item durability.\nExisting mod saves are backed up once before this upgrade. Use a new world for testing.",
                 "Alpha - Play directly",JOptionPane.OK_CANCEL_OPTION));if(consent[0]!=JOptionPane.OK_OPTION)return;
         Path game=data.resolve("patched-engine").resolve(client.version());Files.createDirectories(game);
         Path runtime=LegacyRuntime.installIfAvailable(game);
@@ -37,6 +37,7 @@ final class DirectAlphaLaunch {
             if(!patch.waitFor(60,TimeUnit.SECONDS)){patch.destroyForcibly();throw new IOException("Patch installation timed out. See "+output);}
             if(patch.exitValue()!=0)throw new IOException("Local patch installation failed. Original untouched.\n"+Files.readString(output));
         }
+        WorldBackup.beforeUpgrade(game,LaunchSession.VERSION);
         Files.createDirectories(game.resolve("resources"));
         OriginalResourceCopy.copy(client.minecraft(),game.resolve("resources"));
         long recordings;

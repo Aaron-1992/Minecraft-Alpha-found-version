@@ -56,6 +56,27 @@ public final class OfflinePatcher {
         reader.accept(new ClassVisitor(Opcodes.ASM9,writer){
             public MethodVisitor visitMethod(int access,String method,String desc,String signature,String[] exceptions){
                 MethodVisitor mv=super.visitMethod(access,method,desc,signature,exceptions);
+                if((name.equals("dr")&&(method.equals("e_")&&desc.equals("()V")||method.equals("b")&&desc.equals("(Ldg;)V")))||(name.equals("z")&&method.equals("a")&&desc.equals("(Ldr;DDDFF)V")))return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitCode(){super.visitCode();Label original=new Label();super.visitVarInsn(Opcodes.ALOAD,name.equals("z")?1:0);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksAnomalies","holdDrop","(Ljava/lang/Object;)Z",false);super.visitJumpInsn(Opcodes.IFEQ,original);super.visitInsn(Opcodes.RETURN);super.visitLabel(original);}
+                };
+                if(name.equals("cj")&&method.equals("a")&&desc.equals("(Ljx;)Z"))return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitCode(){super.visitCode();Label original=new Label();super.visitVarInsn(Opcodes.ALOAD,0);super.visitVarInsn(Opcodes.ALOAD,1);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksAnomalies","delayDrop","(Ljava/lang/Object;Ljava/lang/Object;)Z",false);super.visitJumpInsn(Opcodes.IFEQ,original);super.visitInsn(Opcodes.ICONST_1);super.visitInsn(Opcodes.IRETURN);super.visitLabel(original);}
+                };
+                if(name.equals("net/minecraft/client/Minecraft")&&method.equals("a")&&desc.equals("(Lbd;)V"))return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitCode(){super.visitCode();super.visitVarInsn(Opcodes.ALOAD,1);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksAnomalies","screen","(Ljava/lang/Object;)V",false);}
+                };
+                if(name.equals("lk")&&method.equals("a")&&desc.equals("(IIIF)V"))return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitInsn(int op){super.visitInsn(op);if(op==Opcodes.AALOAD){super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksAnomalies","ghostItem","(Ljava/lang/Object;)Ljava/lang/Object;",false);super.visitTypeInsn(Opcodes.CHECKCAST,"eo");}}
+                };
+                if(name.equals("ka")&&method.equals("a")&&desc.equals("(DDD)V"))return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitInsn(int op){if(op==Opcodes.RETURN){super.visitVarInsn(Opcodes.ALOAD,0);super.visitVarInsn(Opcodes.DLOAD,1);super.visitVarInsn(Opcodes.DLOAD,3);super.visitVarInsn(Opcodes.DLOAD,5);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksVisibility","capture","(Ljava/lang/Object;DDD)V",false);}super.visitInsn(op);}
+                };
+                if(name.equals("cj")&&method.equals("a")&&desc.equals("(DDDLjava/lang/String;FF)V"))return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitCode(){super.visitCode();super.visitVarInsn(Opcodes.ALOAD,0);super.visitVarInsn(Opcodes.DLOAD,1);super.visitVarInsn(Opcodes.DLOAD,3);super.visitVarInsn(Opcodes.DLOAD,5);super.visitVarInsn(Opcodes.ALOAD,7);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksAnomalies","hear","(Ljava/lang/Object;DDDLjava/lang/String;)V",false);}
+                };
+                if(name.equals("fv")&&method.equals("e_")&&desc.equals("()V"))return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitCode(){super.visitCode();Label normal=new Label();super.visitVarInsn(Opcodes.ALOAD,0);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksAnomalies","freezeAnimal","(Ljava/lang/Object;)Z",false);super.visitJumpInsn(Opcodes.IFEQ,normal);super.visitInsn(Opcodes.RETURN);super.visitLabel(normal);}
+                };
                 if(name.equals("cj")&&(method.equals("<init>")||method.equals("m")&&desc.equals("()V"))){
                     final boolean saving=method.equals("m");
                     return new MethodVisitor(Opcodes.ASM9,mv){
@@ -110,7 +131,14 @@ public final class OfflinePatcher {
                     }
                 };
                 return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitLdcInsn(Object value){super.visitLdcInsn(value);if(name.equals("e")&&method.equals("a")&&desc.equals("(F)V")&&value instanceof Float&&((Float)value).floatValue()==30f)super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksAnomalies","sunSize","(F)F",false);}
                     public void visitMethodInsn(int opcode,String owner,String called,String descriptor,boolean itf){
+                        if((name.equals("e")||name.equals("ig"))&&owner.equals("cj")&&(called.equals("b")||called.equals("e"))&&descriptor.equals("(F)Lah;")){
+                            super.visitMethodInsn(opcode,owner,called,descriptor,itf);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksAnomalies","sky","(Ljava/lang/Object;)Ljava/lang/Object;",false);super.visitTypeInsn(Opcodes.CHECKCAST,"ah");return;
+                        }
+                        if(name.equals("e")&&owner.equals("cj")&&called.equals("c")&&descriptor.equals("(F)F")){
+                            super.visitMethodInsn(opcode,owner,called,descriptor,itf);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksAnomalies","sun","(F)F",false);return;
+                        }
                         if(opcode==Opcodes.INVOKESTATIC&&owner.equals("org/lwjgl/opengl/GL11")&&called.equals("glFogf")&&descriptor.equals("(IF)V")){
                             super.visitInsn(Opcodes.DUP2);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","fog","(IF)F",false);super.visitInsn(Opcodes.SWAP);super.visitInsn(Opcodes.POP);
                         }
@@ -144,6 +172,8 @@ public final class OfflinePatcher {
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","previewKey","(Z)V",false);
         m.visitIntInsn(Opcodes.BIPUSH,65);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/input/Keyboard","isKeyDown","(I)Z",false);
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","cancelKey","(Z)V",false);
+        m.visitIntInsn(Opcodes.BIPUSH,66);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/input/Keyboard","isKeyDown","(I)Z",false);
+        m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","anomalyPreviewKey","(Z)V",false);
         m.visitInsn(Opcodes.ICONST_1);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","nextSound","(Z)Ljava/lang/String;",false);m.visitVarInsn(Opcodes.ASTORE,1);
         m.visitVarInsn(Opcodes.ALOAD,1);m.visitJumpInsn(Opcodes.IFNULL,end);
         m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"e","Lcj;");
@@ -154,7 +184,7 @@ public final class OfflinePatcher {
                 m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks",field.equals("ah")?"soundX":"soundZ","(F)D",false);m.visitInsn(Opcodes.DADD);
             }else{m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","soundY","(D)D",false);}
         }
-        m.visitVarInsn(Opcodes.ALOAD,1);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","soundVolume","()F",false);m.visitLdcInsn(0.95f);
+        m.visitVarInsn(Opcodes.ALOAD,1);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","soundVolume","()F",false);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","soundPitch","()F",false);
         m.visitMethodInsn(Opcodes.INVOKEVIRTUAL,"cj","a","(DDDLjava/lang/String;FF)V",false);
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","takeParticle","()Z",false);m.visitJumpInsn(Opcodes.IFEQ,end);
         // Original smoke particles on the edge of view; no custom texture or entity.
@@ -176,6 +206,8 @@ public final class OfflinePatcher {
     }
     static byte[] watcherClass(){
         ClassWriter w=new ClassWriter(ClassWriter.COMPUTE_MAXS);w.visit(Opcodes.V1_5,Opcodes.ACC_PUBLIC,"AlphaWatcher",null,"lr",null);
+        w.visitField(Opcodes.ACC_PUBLIC,"alpha$plain","Z",null,null).visitEnd();
+        w.visitField(Opcodes.ACC_PRIVATE|Opcodes.ACC_STATIC,"alpha$model","Lff;",null,null).visitEnd();
         MethodVisitor m=w.visitMethod(Opcodes.ACC_PUBLIC,"<init>","(Lcj;)V",null,null);m.visitCode();m.visitVarInsn(Opcodes.ALOAD,0);m.visitVarInsn(Opcodes.ALOAD,1);m.visitMethodInsn(Opcodes.INVOKESPECIAL,"lr","<init>","(Lcj;)V",false);m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();
         // No AI, attacks, sunlight logic, drops, collisions or serialization.
         m=w.visitMethod(Opcodes.ACC_PUBLIC,"e_","()V",null,null);m.visitCode();m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();
@@ -185,6 +217,14 @@ public final class OfflinePatcher {
         m=w.visitMethod(Opcodes.ACC_PUBLIC|Opcodes.ACC_STATIC,"draw","(Lff;FFFFFFLjava/lang/Object;)V",null,null);m.visitCode();
         Label normal=new Label(),start=new Label(),finish=new Label(),handler=new Label();
         m.visitVarInsn(Opcodes.ALOAD,7);m.visitTypeInsn(Opcodes.INSTANCEOF,"AlphaWatcher");m.visitJumpInsn(Opcodes.IFEQ,normal);
+        m.visitVarInsn(Opcodes.ALOAD,7);m.visitTypeInsn(Opcodes.CHECKCAST,"AlphaWatcher");m.visitFieldInsn(Opcodes.GETFIELD,"AlphaWatcher","alpha$plain","Z");Label dark=new Label(),modelReady=new Label();m.visitJumpInsn(Opcodes.IFEQ,dark);
+        m.visitFieldInsn(Opcodes.GETSTATIC,"AlphaWatcher","alpha$model","Lff;");m.visitJumpInsn(Opcodes.IFNONNULL,modelReady);
+        m.visitTypeInsn(Opcodes.NEW,"cn");m.visitInsn(Opcodes.DUP);m.visitMethodInsn(Opcodes.INVOKESPECIAL,"cn","<init>","()V",false);m.visitFieldInsn(Opcodes.PUTSTATIC,"AlphaWatcher","alpha$model","Lff;");
+        m.visitLabel(modelReady);
+        m.visitFieldInsn(Opcodes.GETSTATIC,"AlphaWatcher","alpha$model","Lff;");m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,"ff","j","F");m.visitFieldInsn(Opcodes.PUTFIELD,"ff","j","F");
+        m.visitFieldInsn(Opcodes.GETSTATIC,"AlphaWatcher","alpha$model","Lff;");m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,"ff","k","Z");m.visitFieldInsn(Opcodes.PUTFIELD,"ff","k","Z");
+        m.visitFieldInsn(Opcodes.GETSTATIC,"AlphaWatcher","alpha$model","Lff;");m.visitVarInsn(Opcodes.ASTORE,0);m.visitJumpInsn(Opcodes.GOTO,normal);
+        m.visitLabel(dark);
         m.visitIntInsn(Opcodes.BIPUSH,65);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/opengl/GL11","glPushAttrib","(I)V",false);
         m.visitLabel(start);m.visitInsn(Opcodes.FCONST_0);m.visitInsn(Opcodes.FCONST_0);m.visitInsn(Opcodes.FCONST_0);m.visitInsn(Opcodes.FCONST_1);
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/opengl/GL11","glColor4f","(FFFF)V",false);
