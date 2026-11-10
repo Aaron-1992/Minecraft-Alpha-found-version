@@ -28,12 +28,28 @@ public class AnomalyTest {
     static void set(Object o,String f,Object value)throws Exception{o.getClass().getField(f).set(o,value);}
     static int n(Object o,String f)throws Exception{return (Integer)get(o,f);}
     @Test public void allFortyRulesHaveDistinctStableIdsAndBoundedMissingContext()throws Exception{
-        assertEquals(40,AmbientHooksAnomalies.Event.values().length);assertEquals(63,AmbientHooks.eventCount());
+        assertEquals(44,AmbientHooksAnomalies.Event.values().length);assertEquals(67,AmbientHooks.eventCount());
         Set<String> names=new HashSet<String>();
         for(AmbientHooksAnomalies.Event event:AmbientHooksAnomalies.Event.values())try(Env e=new Env()){
             assertTrue(names.add(event.name()));assertTrue(event.tier>=1&&event.tier<=4);assertTrue(event.weight>0);
             e.arm(event);e.ticks(1250);assertFalse("Event exceeded time budget: "+event,privateValue("event")!=null);
             assertFalse("Adapter globally disabled by "+event,AmbientHooks.Scene.disabled);
+        }
+    }
+    @Test public void debugSelectorUsesExactStableIdsAndSurvivesInactiveTicks()throws Exception{
+        try(Env e=new Env()){
+            for(int i=0;i<AmbientHooks.eventCount();i++){
+                AmbientHooks.selectDebug(i);AmbientHooks.nextSound(false);AmbientHooks.nextSound(true);
+                assertEquals(AmbientHooks.eventNames()[i],AmbientHooks.lastEventName());
+            }
+            try{AmbientHooks.selectDebug(-1);fail();}catch(IllegalArgumentException expected){}
+            AmbientHooks.selectDebug(0);AmbientHooks.cancelDebug();AmbientHooks.nextSound(true);
+        }
+    }
+    @Test public void newSoundSequencesAreQuietBoundedAndCancellable()throws Exception{
+        for(AmbientHooksAnomalies.Event rule:new AmbientHooksAnomalies.Event[]{AmbientHooksAnomalies.Event.ANSWERING_KNOCKS,AmbientHooksAnomalies.Event.APPROACHING_STEPS})try(Env e=new Env()){
+            e.arm(rule);e.ticks(180);assertNotNull(e.heard);assertNull(privateValue("event"));
+            e.arm(rule);e.ticks(20);AmbientHooksAnomalies.cancel(false);assertNull(privateValue("event"));
         }
     }
     static Object privateValue(String name)throws Exception{Field f=AmbientHooksAnomalies.class.getDeclaredField(name);f.setAccessible(true);return f.get(null);}

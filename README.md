@@ -1,4 +1,4 @@
-# Alpha Desktop
+# Minecraft Alpha Launcher
 
 An unofficial native Windows launcher for **Minecraft Alpha a1.0.16**.
 
@@ -22,7 +22,7 @@ Launcher data lives under `%APPDATA%\AlphaDesktop`. Game files and saves are kep
 
 **Gameplay adjustments can permanently change saved worlds and inventory.** Use a copy of an important world. Before this version first launches existing saves, a one-time local ZIP is created at:
 
-`patched-engine\a1.0.16\world-backups\before-0.14.0.zip`
+`patched-engine\a1.0.16\world-backups\before-0.15.0.zip`
 
 That backup is never overwritten. New worlds created afterward need their own later backups. Close the game before restoring saves; preserve the current folder elsewhere before extracting a backup's `saves/` directory. A backup is not a live undo feature.
 

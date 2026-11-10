@@ -10,9 +10,12 @@ public final class AmbientHooks {
     private static int quietTicks=20*(120+atmosphere.nextInt(121));
     private static long activeTicks;
     private static boolean newKeyHeld;
-    private static int newCursor,forcedIndex=-1;
+    private static int newCursor,forcedIndex=-1,debugSelection=-1;
+    static synchronized void selectDebug(int index){if(index<0||index>=EVENT_NAMES.length)throw new IllegalArgumentException("Invalid selection");debugSelection=index;}
+    static synchronized void cancelDebug(){debugSelection=-1;cancelRequested=true;}
     private static volatile float lastFogEnd=48;
-    private static boolean keyHeld,forceEvent,particle,cancelHeld,cancelRequested,replaceScene;
+    private static boolean keyHeld,forceEvent,particle,cancelHeld,replaceScene;
+    private static volatile boolean cancelRequested;
     private static int encounterRequest=-1,anomalyRequest=-1;
     private static boolean encounterPreview,fixedAudio;
     private static double cueX,cueY,cueZ;
@@ -58,6 +61,7 @@ public final class AmbientHooks {
     public static synchronized String nextSound(boolean active){
         fixedAudio=false;
         if(!active){keyHeld=false;newKeyHeld=false;cancelHeld=false;forceEvent=false;forcedIndex=-1;textUntil=0;return null;}
+        if(debugSelection>=0){int chosen=debugSelection;debugSelection=-1;forceEvent=true;forcedIndex=chosen<14?chosen+9:chosen<23?chosen-14:chosen;}
         activeTicks++;
         if(!cues.isEmpty()){
             Cue cue=cues.removeFirst();fixedAudio=true;cueX=cue.x;cueY=cue.y;cueZ=cue.z;cueGain=cue.gain;cuePitch=cue.pitch;

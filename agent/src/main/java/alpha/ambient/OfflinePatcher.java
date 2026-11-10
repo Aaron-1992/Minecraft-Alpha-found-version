@@ -174,6 +174,8 @@ public final class OfflinePatcher {
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","cancelKey","(Z)V",false);
         m.visitIntInsn(Opcodes.BIPUSH,66);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/input/Keyboard","isKeyDown","(I)Z",false);
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","anomalyPreviewKey","(Z)V",false);
+        m.visitIntInsn(Opcodes.BIPUSH,67);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/input/Keyboard","isKeyDown","(I)Z",false);
+        m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksDebug","key","(Z)V",false);
         m.visitInsn(Opcodes.ICONST_1);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","nextSound","(Z)Ljava/lang/String;",false);m.visitVarInsn(Opcodes.ASTORE,1);
         m.visitVarInsn(Opcodes.ALOAD,1);m.visitJumpInsn(Opcodes.IFNULL,end);
         m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"e","Lcj;");

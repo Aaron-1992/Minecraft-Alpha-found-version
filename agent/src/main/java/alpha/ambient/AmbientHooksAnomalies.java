@@ -14,7 +14,8 @@ public final class AmbientHooksAnomalies {
         SHADOW_REPLAY(4,2), MUSIC_WARP(4,2), SYNC_STEPS(4,4), SILENT_WORLD(4,2),
         DELAYED_DROP(1,2), FOG_WATCHER(2,2), BASE_REPLICA(3,1), FALSE_DAYLIGHT(3,2),
         IMPOSSIBLE_WATER(3,1), INVENTORY_GHOST(3,2), TREE_LEAF_GEOMETRY(3,1),
-        INFINITE_LOOP(4,1), BASE_EVACUATION(4,2), FALSE_HORIZON(4,1), WINDOW_WATCHER(4,2), CHUNK_SCAR(4,1), MIRROR_ROOM(4,1);
+        INFINITE_LOOP(4,1), BASE_EVACUATION(4,2), FALSE_HORIZON(4,1), WINDOW_WATCHER(4,2), CHUNK_SCAR(4,1), MIRROR_ROOM(4,1),
+        ANSWERING_KNOCKS(1,4), APPROACHING_STEPS(2,4), CAVE_REPLY(2,3), RESTLESS_DOOR(3,3);
         public final int tier,weight;
         Event(int tier,int weight){this.tier=tier;this.weight=weight;}
     }
@@ -84,6 +85,14 @@ public final class AmbientHooksAnomalies {
     }
     private static boolean run(boolean moving)throws Exception{
         switch(event){
+            case ANSWERING_KNOCKS:
+                if(stillTicks>=60){effectAge++;if(effectAge==1||effectAge==13||effectAge==38)behind("step.wood",11,.10f,.85f);started=true;if(effectAge>45)return true;}break;
+            case APPROACHING_STEPS:
+                if(!moving){effectAge++;if(effectAge%18==1)behind("step.gravel",Math.max(7,22-effectAge/6),.10f,.9f);started=true;if(effectAge>=90)return true;}else if(started)return true;break;
+            case CAVE_REPLY:
+                if(AmbientHooks.Scene.sheltered&&stillTicks>=40){effectAge++;if(effectAge==1||effectAge==27||effectAge==65)behind("step.stone",18,.09f,.65f);started=true;if(effectAge>70)return true;}break;
+            case RESTLESS_DOOR:
+                if(AmbientHooks.Scene.sheltered){effectAge++;if(effectAge==20||effectAge==85)emit("random.door_open",sourceX,sourceY,sourceZ,.09f,.8f);started=true;if(effectAge>100)return true;}break;
             case PHANTOM_STEP:
                 if(previousMoving&&!moving){behind("step.gravel",8,.12f,.95f);started=true;return true;}break;
             case DOOR_MIMIC:

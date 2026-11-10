@@ -8,9 +8,9 @@ spec.loader.exec_module(retention)
 
 
 class ReleaseRetentionTests(unittest.TestCase):
-    def release(self, tag='v0.14.0-desktop.28', date='2026-11-08T12:00:00Z', **overrides):
+    def release(self, tag='v0.15.0-desktop.28', date='2026-11-08T12:00:00Z', **overrides):
         release = dict(tag_name=tag, created_at=date, target_commitish='test-commit', draft=False,
-                       assets=[dict(name='AlphaDesktop-0.14.0.exe', size=2000000)])
+                       assets=[dict(name='AlphaDesktop-0.15.0.exe', size=2000000)])
         release.update(overrides)
         return release
 
@@ -22,9 +22,13 @@ class ReleaseRetentionTests(unittest.TestCase):
         draft = self.release('v0.12.0-desktop.25', draft=True)
         self.assertEqual([old['tag_name']], retention.deletion_plan([old, current, newer, unrelated, draft], current['tag_name'], 'test-commit'))
 
+    def test_unversioned_installer_is_accepted(self):
+        current = self.release(assets=[dict(name='MinecraftAlphaLauncher.exe', size=2000000)])
+        self.assertEqual([], retention.deletion_plan([current], current['tag_name'], 'test-commit'))
+
     def test_missing_or_wrong_replacement_cannot_delete_anything(self):
         for changes in (dict(assets=[]), dict(draft=True), dict(target_commitish='different')):
             with self.assertRaises(ValueError):
-                retention.deletion_plan([self.release(**changes)], 'v0.14.0-desktop.28', 'test-commit')
+                retention.deletion_plan([self.release(**changes)], 'v0.15.0-desktop.28', 'test-commit')
         with self.assertRaises(ValueError):
-            retention.deletion_plan([], 'v0.14.0-desktop.28', 'test-commit')
+            retention.deletion_plan([], 'v0.15.0-desktop.28', 'test-commit')

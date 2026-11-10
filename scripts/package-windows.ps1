@@ -1,4 +1,4 @@
-param([string]$Version = "0.14.0")
+param([string]$Version = "0.15.0")
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
@@ -65,6 +65,7 @@ if ($Bytes[0] -ne 0x4D -or $Bytes[1] -ne 0x5A) { throw "Installer lacks Windows 
 $PeOffset = [BitConverter]::ToInt32($Bytes, 0x3C)
 if ($Bytes[$PeOffset] -ne 0x50 -or $Bytes[$PeOffset + 1] -ne 0x45) { throw "Installer lacks PE signature" }
 
+Move-Item $Installer "release/MinecraftAlphaLauncher.exe" -Force
 $Files = Get-ChildItem release -File | Where-Object { $_.Extension -eq ".exe" -or $_.Name -like "*-windows-x64-portable.zip" }
 $Lines = $Files | ForEach-Object { ((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()) + "  " + $_.Name }
 $Lines | Set-Content -Encoding ascii "release/SHA256SUMS-windows.txt"

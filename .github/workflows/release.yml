@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  VERSION: '0.14.0'
+  VERSION: '0.15.0'
 
 jobs:
   build:
@@ -170,7 +170,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title "Alpha Desktop ${VERSION} — Windows launcher" \
+            --title "Minecraft Alpha Launcher — a1.0.16" \
             --notes-file RELEASE_NOTES.md \
             release/*
           python3 scripts/prune-releases.py --repo "$GITHUB_REPOSITORY" --keep "$TAG" --expected-commit "$GITHUB_SHA"

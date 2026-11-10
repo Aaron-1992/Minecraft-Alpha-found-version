@@ -5,7 +5,7 @@ import java.util.*;
 
 /** One direct-game process, one log directory. Never scans legacy installations. */
 final class LaunchSession {
-    static final String VERSION="0.14.0";
+    static final String VERSION="0.15.0";
     final Path directory;
     private final Properties status=new Properties();
     private LaunchSession(Path directory){this.directory=directory;}

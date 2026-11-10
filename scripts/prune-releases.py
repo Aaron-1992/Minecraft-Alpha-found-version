@@ -14,7 +14,7 @@ def deletion_plan(releases, keep, commit):
     if current.get('draft') or current['target_commitish'] != commit:
         raise ValueError('Retained release is not the expected published commit')
     match = re.fullmatch(r'v(\d+\.\d+\.\d+)-desktop\.\d+', keep)
-    if not match or not any(a['name'] == 'AlphaDesktop-' + match[1] + '.exe' and a['size'] > 1000000 for a in current['assets']):
+    if not match or not any(a['name'] in ('AlphaDesktop-' + match[1] + '.exe', 'MinecraftAlphaLauncher.exe') and a['size'] > 1000000 for a in current['assets']):
         raise ValueError('Verified replacement Windows installer missing')
     return [r['tag_name'] for r in releases
             if r['tag_name'] != keep and not r.get('draft')
