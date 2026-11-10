@@ -81,7 +81,7 @@ final class StartupDiagnostics {
         }
         candidates=candidates.stream().distinct().sorted((a,b)->Long.compare(modified(b),modified(a))).limit(24).toList();
         Finding selected=new Finding("UNKNOWN","No specific failure was found in the available local log excerpts. Exit code 1 alone is not a diagnosis.",List.of());
-        StringBuilder report=new StringBuilder("Alpha Found 0.7.0 - legacy startup diagnostic (not the latest-session report)\nGenerated: "+Instant.now()+"\nOS: "+System.getProperty("os.name")+" "+System.getProperty("os.arch")+"\nSetup Java (not proof of game Java): "+System.getProperty("java.version")+"\n\n");
+        StringBuilder report=new StringBuilder("Alpha Found 0.8.0 - legacy startup diagnostic (not the latest-session report)\nGenerated: "+Instant.now()+"\nOS: "+System.getProperty("os.name")+" "+System.getProperty("os.arch")+"\nSetup Java (not proof of game Java): "+System.getProperty("java.version")+"\n\n");
         report.append("Read-only scan of known launcher/game log paths. Tails are bounded; only redacted failure excerpts are exported.\nNo account files, full launch commands or original logs are copied. Nothing is uploaded.\nA log excerpt may describe an older/different launch; its timestamp is shown, not treated as proof of the current cause.\n\n");
         int excerpts=0;
         for(Path file:candidates){

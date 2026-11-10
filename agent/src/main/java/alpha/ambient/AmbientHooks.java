@@ -3,17 +3,21 @@ package alpha.ambient;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-/** Java 8 hooks. No UI, audio, textures, entities, network, reflection or file access. */
+/** Java 8 ambience hooks. Original game model/audio only; no network or file access. */
 public final class AmbientHooks {
     private static final Map<Object,Pending> pending=new WeakHashMap<Object,Pending>();
     private static final java.util.Random atmosphere=new java.util.Random();
     private static int quietTicks=20*(240+atmosphere.nextInt(301));
     private static long activeTicks;
     private static boolean keyHeld,forceEvent,particle;
-    private static int events;
+    private static int events,previewCursor,echoes,echoDelay;
+    private static boolean sceneRequest,sceneCrossing,scenePreview;
+    private static long driftUntil,textUntil;
+    private static String lastEvent="NONE";
+    private static final String[] EVENT_NAMES={"WATCHER","CROSSING","FOOTSTEP_ECHO","FALSE_BLOCK","SMOKE","FOG_DRIFT","HUD_DRIFT"};
     private static long previewFogUntil;
     public static synchronized void previewKey(boolean down){
-        if(down&&!keyHeld){forceEvent=true;previewFogUntil=System.nanoTime()+6000000000L;}
+        if(down&&!keyHeld){forceEvent=true;}
         keyHeld=down;
     }
     static int intervalSeconds(long ticks){
@@ -23,22 +27,88 @@ public final class AmbientHooks {
     }
     /** Active game ticks only; F6 skips the wait, not terrain placement checks. */
     public static synchronized String nextSound(boolean active){
-        if(!active){keyHeld=false;return null;}
+        if(!active){keyHeld=false;textUntil=0;return null;}
         activeTicks++;
         if(!Boolean.parseBoolean(System.getProperty("alpha.scheduledSounds","true")))return null;
+        if(!forceEvent&&echoes>0&&!Scene.moving&&--echoDelay<=0){
+            echoes--;echoDelay=7;System.out.println("[Alpha ambience] echo after stop; remaining="+echoes);return "step.stone";
+        }
         if(!forceEvent&&--quietTicks>0)return null;
         boolean preview=forceEvent;forceEvent=false;quietTicks=20*intervalSeconds(activeTicks);
-        particle=(++events%2==0)||preview;
-        String[] sounds={"step.grass","step.stone","step.gravel","random.pop","step.wood"};
-        String sound=sounds[atmosphere.nextInt(sounds.length)];
-        System.out.println("[Alpha ambience] tick="+activeTicks+" event="+events+" preview="+preview+" soundRequest="+sound+" particleRequest="+particle);
+        echoes=0;
+        int kind=preview?(previewCursor++%EVENT_NAMES.length):atmosphere.nextInt(EVENT_NAMES.length);
+        lastEvent=EVENT_NAMES[kind];
+        particle=kind==4;
+        sceneRequest=kind==0||kind==1;sceneCrossing=kind==1;scenePreview=preview;
+        if(kind==2){echoes=3;echoDelay=9;}
+        if(kind==6)textUntil=activeTicks+20*8;
+        if(kind==5){driftUntil=activeTicks+20*12;if(preview)previewFogUntil=System.nanoTime()+6000000000L;}
+        ++events;
+        String[] sounds={"step.grass","step.wood","step.stone","random.click","random.pop","step.gravel","step.wood"};
+        String sound=sounds[kind];
+        System.out.println("[Alpha ambience] tick="+activeTicks+" event="+events+" type="+EVENT_NAMES[kind]+" preview="+preview+" soundRequest="+sound);
         return sound;
     }
+    static String lastEventName(){return lastEvent;}
+    public static int textOffset(int coordinate){return activeTicks<textUntil?coordinate+((activeTicks/40)%2==0?1:2):coordinate;}
     public static synchronized boolean takeParticle(){boolean result=particle;particle=false;return result;}
     public static double soundX(float yaw){return -Math.sin(Math.toRadians(yaw+135))*6;}
     public static double soundZ(float yaw){return Math.cos(Math.toRadians(yaw+135))*6;}
     public static double visualX(float yaw){return -Math.sin(Math.toRadians(yaw+32))*9;}
     public static double visualZ(float yaw){return Math.cos(Math.toRadians(yaw+32))*9;}
+    /** Runtime-only scene controller; reflection is restricted to inspected a1.0.16 members. */
+    public static void scene(Object world,Object player){Scene.tick(world,player);}
+    public static boolean isWatcher(Object value){return value!=null&&value.getClass().getName().equals("AlphaWatcher");}
+    private static final class Scene {
+        static Object world,player,figure;
+        static java.lang.reflect.Method block,loaded,spawn,position,dead;
+        static java.lang.reflect.Field x,y,z,yaw;
+        static boolean disabled,seen,moving;
+        static int age,life;
+        static double fx,fy,fz,previousX,previousZ;
+        static void tick(Object nextWorld,Object nextPlayer){
+            if(disabled)return;
+            try{
+                if(nextWorld==null||nextPlayer==null){remove();world=null;player=null;return;}
+                if(world!=nextWorld){remove();world=nextWorld;player=nextPlayer;
+                    ClassLoader loader=world.getClass().getClassLoader();Class<?> wc=Class.forName("cj",false,loader),entity=Class.forName("jx",false,loader);
+                    block=wc.getMethod("a",int.class,int.class,int.class);loaded=wc.getMethod("h",int.class,int.class);spawn=wc.getMethod("a",entity);
+                    position=entity.getMethod("b",double.class,double.class,double.class,float.class,float.class);dead=entity.getMethod("D");
+                    x=entity.getField("ah");y=entity.getField("ai");z=entity.getField("aj");yaw=entity.getField("an");previousX=x.getDouble(player);previousZ=z.getDouble(player);
+                }
+                player=nextPlayer;double px=x.getDouble(player),py=y.getDouble(player),pz=z.getDouble(player);float facing=yaw.getFloat(player);
+                moving=Math.hypot(px-previousX,pz-previousZ)>.025;previousX=px;previousZ=pz;
+                if(figure!=null){
+                    age++;double dx=fx-px,dz=fz-pz,distance=Math.hypot(dx,dz);
+                    double dot=distance==0?1:(-Math.sin(Math.toRadians(facing))*dx+Math.cos(Math.toRadians(facing))*dz)/distance;
+                    if(dot>.94)seen=true;
+                    if(age>life||distance<12||(seen&&age>20&&dot<.25)){remove();}
+                    else if(sceneCrossing&&age<45){fx+=.075;position.invoke(figure,fx,fy,fz,(float)(facing+180),0f);}
+                }
+                if(sceneRequest){sceneRequest=false;spawnFigure(px,py,pz,facing);}
+            }catch(Throwable error){
+                if(error instanceof ThreadDeath)throw (ThreadDeath)error;if(error instanceof VirtualMachineError)throw (VirtualMachineError)error;
+                try{remove();}catch(Exception ignored){}disabled=true;
+                System.err.println("[Alpha scene] disabled after "+error.getClass().getSimpleName()+": "+error.getMessage());
+            }
+        }
+        static void remove()throws Exception{if(figure!=null){dead.invoke(figure);figure=null;System.out.println("[Alpha scene] watcher removed");}}
+        static void spawnFigure(double px,double py,double pz,float facing)throws Exception{
+            remove();double angle=Math.toRadians(facing+28),distance=scenePreview?20:27;
+            int bx=(int)Math.floor(px-Math.sin(angle)*distance),bz=(int)Math.floor(pz+Math.cos(angle)*distance);
+            if(!((Boolean)loaded.invoke(world,bx>>4,bz>>4))){System.out.println("[Alpha scene] skipped: target chunk not loaded");return;}
+            for(int by=Math.min(124,(int)py+8);by>=Math.max(2,(int)py-14);by--){
+                int base=(Integer)block.invoke(world,bx,by,bz);
+                if(base!=1&&base!=2&&base!=3&&base!=12&&base!=13&&base!=80)continue;
+                if((Integer)block.invoke(world,bx,by+1,bz)!=0||(Integer)block.invoke(world,bx,by+2,bz)!=0)continue;
+                Object candidate=Class.forName("AlphaWatcher",true,world.getClass().getClassLoader()).getConstructor(Class.forName("cj",false,world.getClass().getClassLoader())).newInstance(world);
+                fx=bx+.5;fy=by+1;fz=bz+.5;position.invoke(candidate,fx,fy,fz,(float)(facing+180),0f);
+                if((Boolean)spawn.invoke(world,candidate)){figure=candidate;age=0;seen=false;life=scenePreview?160:65;System.out.println("[Alpha scene] watcher spawned; crossing="+sceneCrossing+" preview="+scenePreview);}
+                return;
+            }
+            System.out.println("[Alpha scene] skipped: no suitable ground (no blocks edited)");
+        }
+    }
     private static final class Pending {
         final byte[] blocks;final int x,z,kind;int attempts;
         Pending(byte[] blocks,int x,int z,int kind){this.blocks=blocks;this.x=x;this.z=z;this.kind=kind;}
@@ -46,7 +116,12 @@ public final class AmbientHooks {
     private AmbientHooks(){}
     public static float fog(int parameter,float original){
         if(System.nanoTime()<previewFogUntil&&(parameter==0x0B63||parameter==0x0B64))return original*.88f;
-        return fogAt(parameter,original,activeTicks/20.0);
+        float base=fogAt(parameter,original,activeTicks/20.0);
+        if(activeTicks<driftUntil&&(parameter==0x0B63||parameter==0x0B64)){
+            double remaining=(driftUntil-activeTicks)/240.0;
+            return (float)(base*(1-.10*Math.sin(Math.PI*remaining)));
+        }
+        return base;
     }
     public static float fogAt(int parameter,float original,double seconds){
         if((parameter!=0x0B63&&parameter!=0x0B64)||original<=0||Float.isNaN(original)||Float.isInfinite(original))return original;

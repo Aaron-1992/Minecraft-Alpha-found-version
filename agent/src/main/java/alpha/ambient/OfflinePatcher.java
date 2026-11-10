@@ -34,6 +34,7 @@ public final class OfflinePatcher {
                     if(!Arrays.equals(original,modified))changes++;
                     out.putNextEntry(new JarEntry(name));out.write(modified);out.closeEntry();
                 }
+                out.putNextEntry(new JarEntry("AlphaWatcher.class"));out.write(watcherClass());out.closeEntry();
                 // Only our small Java 8 hook classes, not ASM or instrumentation helpers.
                 try(InputStream resource=OfflinePatcher.class.getResourceAsStream("bootstrap-hooks.jar")){
                     if(resource==null)throw new IOException("Packaged hooks missing");
@@ -76,6 +77,17 @@ public final class OfflinePatcher {
                         }
                     };
                 }
+                if(name.equals("jt")&&desc.equals("(Ljava/lang/String;IIIZ)V"))return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitCode(){super.visitCode();super.visitVarInsn(Opcodes.ILOAD,2);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","textOffset","(I)I",false);super.visitVarInsn(Opcodes.ISTORE,2);}
+                };
+                if(name.equals("dh")&&desc.equals("(Lfv;DDDFF)V"))return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitMethodInsn(int opcode,String owner,String called,String descriptor,boolean itf){
+                        if(owner.equals("ff")&&called.equals("b")&&descriptor.equals("(FFFFFF)V")){
+                            super.visitVarInsn(Opcodes.ALOAD,1);super.visitMethodInsn(Opcodes.INVOKESTATIC,"AlphaWatcher","draw","(Lff;FFFFFFLjava/lang/Object;)V",false);return;
+                        }
+                        super.visitMethodInsn(opcode,owner,called,descriptor,itf);
+                    }
+                };
                 return new MethodVisitor(Opcodes.ASM9,mv){
                     public void visitMethodInsn(int opcode,String owner,String called,String descriptor,boolean itf){
                         if(opcode==Opcodes.INVOKESTATIC&&owner.equals("org/lwjgl/opengl/GL11")&&called.equals("glFogf")&&descriptor.equals("(IF)V")){
@@ -104,6 +116,9 @@ public final class OfflinePatcher {
         }
         m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"p","Lbd;");m.visitJumpInsn(Opcodes.IFNONNULL,inactive);
         m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"m","Z");m.visitJumpInsn(Opcodes.IFNE,inactive);
+        m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"e","Lcj;");
+        m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"g","Lbe;");
+        m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","scene","(Ljava/lang/Object;Ljava/lang/Object;)V",false);
         m.visitIntInsn(Opcodes.BIPUSH,64);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/input/Keyboard","isKeyDown","(I)Z",false);
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","previewKey","(Z)V",false);
         m.visitInsn(Opcodes.ICONST_1);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","nextSound","(Z)Ljava/lang/String;",false);m.visitVarInsn(Opcodes.ASTORE,1);
@@ -133,8 +148,31 @@ public final class OfflinePatcher {
             m.visitMethodInsn(Opcodes.INVOKEVIRTUAL,"cj","a","(Ljava/lang/String;DDDDDD)V",false);
         }
         m.visitJumpInsn(Opcodes.GOTO,end);
-        m.visitLabel(inactive);m.visitInsn(Opcodes.ICONST_0);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","nextSound","(Z)Ljava/lang/String;",false);m.visitInsn(Opcodes.POP);
+        m.visitLabel(inactive);m.visitInsn(Opcodes.ACONST_NULL);m.visitInsn(Opcodes.ACONST_NULL);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","scene","(Ljava/lang/Object;Ljava/lang/Object;)V",false);m.visitInsn(Opcodes.ICONST_0);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","nextSound","(Z)Ljava/lang/String;",false);m.visitInsn(Opcodes.POP);
         m.visitLabel(end);m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();
+    }
+    static byte[] watcherClass(){
+        ClassWriter w=new ClassWriter(ClassWriter.COMPUTE_MAXS);w.visit(Opcodes.V1_5,Opcodes.ACC_PUBLIC,"AlphaWatcher",null,"lr",null);
+        MethodVisitor m=w.visitMethod(Opcodes.ACC_PUBLIC,"<init>","(Lcj;)V",null,null);m.visitCode();m.visitVarInsn(Opcodes.ALOAD,0);m.visitVarInsn(Opcodes.ALOAD,1);m.visitMethodInsn(Opcodes.INVOKESPECIAL,"lr","<init>","(Lcj;)V",false);m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();
+        // No AI, attacks, sunlight logic, drops, collisions or serialization.
+        m=w.visitMethod(Opcodes.ACC_PUBLIC,"e_","()V",null,null);m.visitCode();m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();
+        for(String[] method:new String[][]{{"a","(Ljx;I)Z"},{"c_","()Z"},{"d_","()Z"},{"c","(Lhc;)Z"}}){
+            m=w.visitMethod(Opcodes.ACC_PUBLIC,method[0],method[1],null,null);m.visitCode();m.visitInsn(Opcodes.ICONST_0);m.visitInsn(Opcodes.IRETURN);m.visitMaxs(0,4);m.visitEnd();
+        }
+        m=w.visitMethod(Opcodes.ACC_PUBLIC|Opcodes.ACC_STATIC,"draw","(Lff;FFFFFFLjava/lang/Object;)V",null,null);m.visitCode();
+        Label normal=new Label(),start=new Label(),finish=new Label(),handler=new Label();
+        m.visitVarInsn(Opcodes.ALOAD,7);m.visitTypeInsn(Opcodes.INSTANCEOF,"AlphaWatcher");m.visitJumpInsn(Opcodes.IFEQ,normal);
+        m.visitIntInsn(Opcodes.BIPUSH,65);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/opengl/GL11","glPushAttrib","(I)V",false);
+        m.visitLabel(start);m.visitInsn(Opcodes.FCONST_0);m.visitInsn(Opcodes.FCONST_0);m.visitInsn(Opcodes.FCONST_0);m.visitInsn(Opcodes.FCONST_1);
+        m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/opengl/GL11","glColor4f","(FFFF)V",false);
+        drawModel(m);m.visitLabel(finish);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/opengl/GL11","glPopAttrib","()V",false);m.visitInsn(Opcodes.RETURN);
+        m.visitLabel(handler);m.visitVarInsn(Opcodes.ASTORE,8);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/opengl/GL11","glPopAttrib","()V",false);m.visitVarInsn(Opcodes.ALOAD,8);m.visitInsn(Opcodes.ATHROW);
+        m.visitTryCatchBlock(start,finish,handler,null);
+        m.visitLabel(normal);drawModel(m);m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();
+        w.visitEnd();return w.toByteArray();
+    }
+    private static void drawModel(MethodVisitor m){
+        m.visitVarInsn(Opcodes.ALOAD,0);for(int i=1;i<=6;i++)m.visitVarInsn(Opcodes.FLOAD,i);m.visitMethodInsn(Opcodes.INVOKEVIRTUAL,"ff","b","(FFFFFF)V",false);
     }
     static String hex(byte[] bytes){StringBuilder s=new StringBuilder();for(byte b:bytes)s.append(String.format("%02x",b&255));return s.toString();}
 }

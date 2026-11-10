@@ -1,4 +1,4 @@
-# Alpha Desktop 0.7.0
+# Alpha Desktop 0.8.0
 
 Native launcher for a locally patched copy of the user's installed Minecraft Alpha a1.0.16. No browser, generated assets, redistributed Minecraft client or replacement login system.
 
@@ -14,19 +14,29 @@ No official-launcher setup menu, Recovery-profile creation menu, old compatibili
 
 Requires your installed `versions/a1.0.16/a1.0.16.jar`, matching JSON and previously installed libraries/natives. No automatic dependency downloads. Accepts only inspected client SHA-256 `fd14110691b14ea51f9320a949e2b3c1855e38af2668bf4e743c19b08de00234`. Your original JAR is never overwritten. Local single-player only; no account/token reading or authenticated multiplayer.
 
-## Ambience and F6 preview
+## New scenes
 
-User reports no more crashes with 0.6.3. The 60 FPS cap, Java 8 sorting compatibility and latest-session logging are retained. Sounds and subtle fog are restored; leaf stripping remains removed.
+- A transient **black humanoid watcher**, reusing Alpha's original zombie model/texture under black tint, not a generated skin. It attempts to appear on suitable ground in an already-loaded chunk, 27 blocks away (20 for previews). No nearby/in-your-face spawning, new terrain generation or block edits for placement.
+- The watcher has no AI tick, attacks, collision, damage response or persistence. It expires after about 3.25 seconds naturally (8 seconds in preview), disappears on approach within 12 blocks, or after being seen and then looking away. It is removed on menu/world changes. It can be hidden by terrain; a request is not guaranteed visibility.
+- A crossing variation briefly moves the watcher sideways before it disappears. This is a short scene, not general stalking/pathfinding AI.
+- Renderer black tint is scoped to the watcher model draw. Original models/textures are used; normal mobs retain their normal renderer path. GL color/lighting state is saved and restored, including when the model draw throws.
 
-- **F6** in a world skips the ambience wait: requests one original sound, three original smoke particles near the edge of view, and a six-second fog preview. Release and press again for another event; holding the key does not flood events. Some keyboards require Fn+F6.
-- F6 is an ambience preview, **not** a teleport/terrain showcase. It does not guarantee a sound exists locally or a particle is visible through terrain. Normal audio volume/mute still applies. Event requests are printed in the latest game log, not in chat.
-- More original cues: grass/stone/gravel/wood footsteps and the original quiet pop. No generated recordings or loud stingers. Missing recordings cannot be played.
-- Every second naturally scheduled sound event also requests three ordinary original smoke particles about nine blocks away near the view edge. There is no actual figure, stalking entity or new texture.
-- Active-game escalation: initial intervals 4–9 minutes, 2–4 minutes after 20 minutes, and 45–120 seconds after 40 minutes. Frequency is capped; loudness does not increase. Menus and paused ticks do not advance it. Timing resets when the game process restarts.
-- Subtle fog drift resumes. F6's deliberate stronger fog preview is temporary. No flashing overlays or desktop effects.
-- Existing rare corridor/sand/gravel changes remain; terrain edits persist. Saved leaf loss is not repaired.
+## Sounds and apparent deterioration
 
-**Restoring several effects at once is not a controlled cause-isolation test.** A recurrence would implicate the changed configuration, not prove which effect caused it. The earlier AMD timeout's root cause is still unknown; don't repeatedly relaunch after a driver reset. No Windows registry, driver or timeout settings are changed.
+- Footstep-echo event schedules three quieter original stone steps after the player stops moving. Unexplained original click/pop/wood/grass/gravel cues and smoke scenes remain. Normal sound controls apply; missing recordings remain unavailable.
+- Temporary smooth fog-distance drift and cosmetic 1–2-pixel text-position drift suggest instability without rewriting text, game settings or saves. Opening a menu clears text drift. This is not texture/mesh corruption or a simulated system crash.
+- Existing escalation: 4–9-minute active-play intervals initially, 2–4 minutes after 20 minutes, 45–120 seconds after 40 minutes. Frequency is capped; volume does not ramp up. Timers reset on process restart.
+
+## F6: preview the actual event types
+
+Each release-and-press advances one event: **Watcher → Crossing → Footstep echo → Unexplained click → Smoke → Fog drift → HUD drift**, then repeats. Some keyboards require Fn+F6. Watcher placement still respects loaded terrain/ground checks; it does not teleport the player or force unsafe placement. Scene spawn/skip/removal and event names are recorded in the latest session log, not in chat. No more all-effects-at-once preview.
+
+## Retained safeguards and verification limits
+
+60 FPS cap, Java 8 sort compatibility, latest-session-only export and original-sound loading fix remain. Leaf stripping stays removed. Prior procedural corridor/sand/gravel edits remain and persist in saves; new watcher/HUD effects do not persist. No generated assets, loud stingers, jumpscares, fake system errors, control lockout or deliberate crashes. Original Minecraft clients/code/media are not distributed.
+
+Added generated-class fixtures for non-collision/non-persistence and render-state cleanup, plus event-cycle/interval tests. The privately supplied client was patched and bytecode-checked; the watcher was constructed against the actual client in a headless JVM and its no-collision/no-serialization overrides exercised. **These are not GPU rendering, original-game gameplay, watcher visibility or audio verification.** Earlier AMD timeout cause remains unknown. If a driver reset returns, stop retrying and export the latest session report.
+
 
 ## Current-session diagnostics, not stale 0.5.2 logs
 
