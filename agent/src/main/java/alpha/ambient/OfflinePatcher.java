@@ -76,6 +76,14 @@ public final class OfflinePatcher {
                         }
                     };
                 }
+                if(name.equals("net/minecraft/client/Minecraft"))return new MethodVisitor(Opcodes.ASM9,mv){
+                    public void visitMethodInsn(int opcode,String owner,String called,String descriptor,boolean itf){
+                        if(opcode==Opcodes.INVOKESTATIC&&owner.equals("org/lwjgl/opengl/Display")&&called.equals("update")&&descriptor.equals("()V")){
+                            super.visitIntInsn(Opcodes.BIPUSH,60);super.visitMethodInsn(Opcodes.INVOKESTATIC,owner,"sync","(I)V",false);
+                        }
+                        super.visitMethodInsn(opcode,owner,called,descriptor,itf);
+                    }
+                };
                 return mv;
 
             }

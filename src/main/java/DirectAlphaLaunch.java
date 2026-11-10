@@ -55,11 +55,16 @@ final class DirectAlphaLaunch {
         Path options=game.resolve("options.txt");
         if(!Files.exists(options))Files.writeString(options,"renderDistance:2\nfancyGraphics:false\nsound:1.0\nmusic:0.5\n",StandardOpenOption.CREATE_NEW);
         List<String> command=command(runtime,patched,libraries,game);
-        Process process=new ProcessBuilder(command).directory(game.toFile()).redirectErrorStream(true).redirectOutput(game.resolve("direct-launch.log").toFile()).start();
-        Properties saved=new Properties();saved.setProperty("client",client.jar().toString());
-        try(OutputStream out=Files.newOutputStream(data.resolve("original-engine.properties"))){saved.store(out,"Client path only. No account data.");}
-        int result=process.waitFor();
-        if(result!=0)throw new IOException("Alpha exited with code "+result+".\nLocal log: "+game.resolve("direct-launch.log")+"\nRecover startup can collect this log automatically.");
+        LaunchSession session=LaunchSession.begin(data);
+        command=new ArrayList<>(command);command.add(1,"-XX:ErrorFile="+session.directory.resolve("hs_err_pid%p.log").toAbsolutePath());
+        try{
+            Process process=new ProcessBuilder(command).directory(game.toFile()).redirectErrorStream(true).redirectOutput(session.directory.resolve("game.log").toFile()).start();
+            Properties saved=new Properties();saved.setProperty("client",client.jar().toString());
+            try(OutputStream out=Files.newOutputStream(data.resolve("original-engine.properties"))){saved.store(out,"Client path only. No account data.");}
+            int result=process.waitFor();session.finished(result);
+            if(result!=0)throw new IOException("Alpha exited with code "+result+". Use Save latest session report in this launcher. If the AMD driver reset, stop testing; its cause is unresolved.");
+        }catch(Exception e){session.failed(e);throw e;}
+
     }
     static String currentOs(){String os=System.getProperty("os.name").toLowerCase(Locale.ROOT);return os.contains("win")?"windows":os.contains("mac")?"osx":"linux";}
     static String digest(Path file)throws Exception{
@@ -69,7 +74,7 @@ final class DirectAlphaLaunch {
     }
     static List<String> command(Path java,Path client,List<Path> libraries,Path game){
         List<String> cp=new ArrayList<>();cp.add(client.toAbsolutePath().toString());for(Path path:libraries)cp.add(path.toAbsolutePath().toString());
-        return List.of(java.toString(),"-Xmx1G","-Djava.util.Arrays.useLegacyMergeSort=true","-Dalpha.gameDir="+game.toAbsolutePath(),"-Djava.library.path="+game.resolve("natives").toAbsolutePath(),
+        return List.of(java.toString(),"-Xmx1G","-Dalpha.scheduledSounds=false","-Djava.util.Arrays.useLegacyMergeSort=true","-Dalpha.gameDir="+game.toAbsolutePath(),"-Djava.library.path="+game.resolve("natives").toAbsolutePath(),
                 "-Dorg.lwjgl.librarypath="+game.resolve("natives").toAbsolutePath(),"-cp",String.join(File.pathSeparator,cp),"net.minecraft.client.Minecraft","Player","-");
     }
     static List<Path> resolveLibraries(Path minecraft,Map<String,Object> metadata,String os,Path natives)throws IOException{

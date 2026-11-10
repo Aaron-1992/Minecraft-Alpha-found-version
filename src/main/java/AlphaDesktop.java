@@ -280,56 +280,23 @@ public final class AlphaDesktop extends Canvas implements Runnable {
     }
     private static void error(String text){System.err.println(text);if(!GraphicsEnvironment.isHeadless())JOptionPane.showMessageDialog(null,text,"Alpha setup",JOptionPane.ERROR_MESSAGE);}
     public static void main(String[] args){
-        Path mc=defaultMinecraft(),jar=null,sounds=null,saves=DesktopSetup.dataDirectory().resolve("saves");boolean check=false;
-        boolean interactive=args.length==0&&!GraphicsEnvironment.isHeadless();
         try{
-            if(interactive&&OriginalEngineSetup.chooseOriginal())return;
-            for(int i=0;i<args.length;i++){
-                switch(args[i]){
-                    case "--minecraft-dir" -> mc=Path.of(args[++i]);
-                    case "--client-jar" -> jar=Path.of(args[++i]);
-                    case "--sounds" -> sounds=Path.of(args[++i]);
-                    case "--saves" -> saves=Path.of(args[++i]);
-                    case "--check-assets" -> check=true;
-                    case "--setup", "--prototype" -> interactive=true;
-                    case "--original" -> {OriginalEngineSetup.open();return;}
-                    case "--play-direct" -> {DirectAlphaLaunch.open();return;}
-                    case "--recover" -> {StartupRecovery.open();return;}
-                    case "--check-recovery" -> {StartupRecovery.verifyPackagedRecovery();return;}
-                    case "--check-agent-preflight" -> {AlphaAgentSupport.verifyPackagedAgent();return;}
-                    case "--check-runtime" -> {
-                        boolean decoder=java.util.ServiceLoader.load(javax.sound.sampled.spi.AudioFileReader.class).stream()
-                                .anyMatch(provider->provider.type().getName().toLowerCase(Locale.ROOT).contains("vorbis"));
-                        if(!decoder)throw new IOException("Bundled original Ogg decoder is missing");
-                        System.out.println("Desktop runtime and original Ogg decoder are available.");return;
-                    }
-                    case "--help" -> {System.out.println("Native Java desktop game.\njava -jar alpha-desktop-0.6.2.jar --client-jar /path/to/alpha.jar [--minecraft-dir /path/to/.minecraft] [--sounds /path/to/original/sound] [--saves /path/to/saves] [--check-assets]\nUse --original to prepare an official-launcher installation with the real Alpha engine. Use --prototype for the custom sandbox.\nUse original legacy Minecraft assets from your own installation. Nothing is generated or downloaded.");return;}
-                    default -> throw new IllegalArgumentException("Unknown option: "+args[i]);
+            if(args.length==0){LauncherHome.open();return;}
+            if(args.length!=1)throw new IOException("Use AlphaDesktop without arguments for the latest launcher.");
+            switch(args[0]){
+                case "--play-direct" -> LauncherHome.open();
+                case "--recover" -> LauncherHome.saveReport();
+                case "--check-recovery" -> StartupRecovery.verifyPackagedRecovery();
+                case "--check-agent-preflight" -> AlphaAgentSupport.verifyPackagedAgent();
+                case "--check-runtime" -> {
+                    boolean decoder=java.util.ServiceLoader.load(javax.sound.sampled.spi.AudioFileReader.class).stream()
+                            .anyMatch(provider->provider.type().getName().toLowerCase(Locale.ROOT).contains("vorbis"));
+                    if(!decoder)throw new IOException("Bundled original Ogg decoder is missing");
+                    System.out.println("Desktop runtime and original Ogg decoder are available.");
                 }
+                case "--help" -> System.out.println("Alpha Desktop "+LaunchSession.VERSION+"\nOpen without arguments: Play latest / Save latest session report / Close.\nLegacy play modes are retired. Installed original a1.0.16 client and dependencies required.");
+                default -> throw new IOException("Unknown or retired option. Open AlphaDesktop without arguments for Play latest.");
             }
-            MinecraftAssets assets;
-            if(interactive){
-                DesktopSetup.Loaded setup=DesktopSetup.open();
-                if(setup==null)return;
-                assets=setup.assets();saves=setup.saves();
-            }else{
-            if(jar==null){
-                Path automatic=mc.resolve("versions/a1.0.16/a1.0.16.jar");
-                if(Files.isRegularFile(automatic))jar=automatic;
-                else throw new IOException("Original Alpha client not found.\nSupply --client-jar /path/to/your/alpha-client.jar.\nAlso supply --sounds /path/to/legacy/sound if your launcher does not have legacy assets.\nNo generated textures or sounds are included.");
-            }
-            assets=new MinecraftAssets(jar,mc,sounds);
-            }
-            assets.report();
-            if(check){try(assets;OriginalAudio audio=new OriginalAudio(assets)){System.out.println("Original textures and Ogg playback verified.");}return;}
-            if(GraphicsEnvironment.isHeadless()){assets.close();throw new IOException("A real desktop display is required. This game does not run in a browser.");}
-            OriginalAudio audio;
-            try{audio=new OriginalAudio(assets);}catch(IOException e){assets.close();throw e;}
-            final Path savePath=saves;
-            SwingUtilities.invokeAndWait(()->{
-                try{AlphaDesktop game=new AlphaDesktop(assets,audio,savePath);new Thread(game,"alpha-game").start();}
-                catch(AWTException e){audio.close();try{assets.close();}catch(IOException ignored){}error("Mouse capture could not start: "+e.getMessage());}
-            });
         }catch(Exception e){error(e.getMessage()==null?e.toString():e.getMessage());System.exit(1);}
     }
 }

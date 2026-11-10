@@ -10,7 +10,7 @@ public final class AmbientHooks {
     private static int quietTicks=20*(240+atmosphere.nextInt(301));
     /** Called on the game tick, not a render thread or timer. Menus cannot trigger audio. */
     public static synchronized String nextSound(boolean active){
-        if(!active)return null;
+        if(!active||!Boolean.parseBoolean(System.getProperty("alpha.scheduledSounds","false")))return null;
         if(--quietTicks>0)return null;
         quietTicks=20*(240+atmosphere.nextInt(301));
         return new String[]{"step.grass","step.stone","step.gravel"}[atmosphere.nextInt(3)];

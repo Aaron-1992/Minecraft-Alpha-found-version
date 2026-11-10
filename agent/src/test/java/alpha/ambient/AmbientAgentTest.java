@@ -43,11 +43,13 @@ public class AmbientAgentTest {
     }
     @Test public void soundScheduleIsSparseAndInactiveTicksAreSilent(){
         for(int i=0;i<20000;i++)assertNull(AmbientHooks.nextSound(false));
+        System.setProperty("alpha.scheduledSounds","true");
         int events=0;
         for(int i=0;i<20*60*60;i++){
             String sound=AmbientHooks.nextSound(true);
             if(sound!=null){events++;assertTrue(java.util.Arrays.asList("step.grass","step.stone","step.gravel").contains(sound));}
         }
+        System.clearProperty("alpha.scheduledSounds");
         assertTrue(events>=6&&events<=15);
         assertEquals(6,Math.hypot(AmbientHooks.soundX(80),AmbientHooks.soundZ(80)),.0001);
     }
