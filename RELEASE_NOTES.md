@@ -1,16 +1,11 @@
-# Alpha Desktop 0.6.0 — direct play and local patches
+# Alpha Desktop 0.6.1 — Alpha renderer sorting compatibility
 
-- **Play patched Alpha**: direct local single-player launch, without opening the official Minecraft Launcher. Full Windows distribution includes Java 8.
-- Applies install-time bytecode patches to a separate copy of the user's exact inspected a1.0.16 JAR. No runtime Java agent, ASM dependency or LaunchWrapper in the game process.
-- Includes subtle environmental tunnel/canopy/sand/gravel and fog hooks. No jump scares, chat events, generated assets or added sounds. Use a new world; terrain edits persist.
-- **Sound-loader fix included immediately**: registers original local recordings without the obsolete HTTP resource-list request. Copies compatible existing legacy recordings; offers folder import or an explicitly soundless test when none are found. Does not fabricate/download missing audio. A nonzero recording count does not guarantee the entire original sound collection is present.
-- Preserves original JAR, Recovery worlds, other worlds and all launcher profiles. Modded data is separate under `%APPDATA%\AlphaDesktop\patched-engine\a1.0.16`.
-- Requires the matching installed version JSON and previously downloaded libraries/natives. Missing dependencies are reported; no downloads occur. Only the inspected original JAR fingerprint is supported. Use an existing compatible launcher once to install dependencies if needed, not every time you play.
-- Local single-player Player session only. No account-token reading, replacement sign-in system or authenticated multiplayer support.
-- Automatic diagnostic reports include direct-launch/patch-install logs. Nothing is uploaded; review best-effort redaction before sharing.
+The user reported a world-creation crash in 0.6.0: `IllegalArgumentException: Comparison method violates its general contract!`, from Java 8 TimSort called by Alpha's renderer (`e.a`, `ig.c`).
 
-## Verification and limits
+Direct play now includes `-Djava.util.Arrays.useLegacyMergeSort=true`, selecting Java 8's legacy sorting implementation instead of TimSort. This targets the reported failure; it does not repair Alpha's comparator or constitute user-confirmed world-creation success. No launcher profiles or Recovery worlds are changed. Launch-command tests assert the setting is present.
 
-The original vanilla Recovery installation is user-confirmed working. Locally patched the supplied exact client, confirmed its original fingerprint was unchanged and verified stack/local types for all 120 methods in modified/added classes. Automated tests cover local-library rules, checksum/path safety, native extraction, sound import, patch structure and fail-closed unsupported clients, alongside previous engine/recovery/agent tests and Windows packaging checks.
+The environmental mod is unchanged: rare straight underground corridors, stripped tree crowns, stepped sand, level gravel seams, and subtle fog drift. No Herobrine entity, stalking AI, apparitions, custom audio, messages or jumpscares. This remains a limited environmental implementation, not a complete collection of creepypasta mechanics.
 
-**These checks do not prove modded gameplay, native graphics or sound playback works on the user's PC.** Original-client gameplay was not run in this headless environment. No original client, decompiled proprietary source, patched game binary or Minecraft media is included in the release.
+The direct-launch setup retains the local sound registration fix from 0.6.0 and imports existing original recordings. Missing audio is not generated or downloaded. Requires the inspected installed a1.0.16 client, matching JSON and local libraries/natives. Windows distribution bundles Java 8. Local single-player only; no account-token reading or authenticated multiplayer.
+
+Original client, patched game binaries, decompiled source and Minecraft media are not distributed. Automated tests and packaging checks are not original-game gameplay verification.

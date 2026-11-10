@@ -69,7 +69,7 @@ final class DirectAlphaLaunch {
     }
     static List<String> command(Path java,Path client,List<Path> libraries,Path game){
         List<String> cp=new ArrayList<>();cp.add(client.toAbsolutePath().toString());for(Path path:libraries)cp.add(path.toAbsolutePath().toString());
-        return List.of(java.toString(),"-Xmx1G","-Dalpha.gameDir="+game.toAbsolutePath(),"-Djava.library.path="+game.resolve("natives").toAbsolutePath(),
+        return List.of(java.toString(),"-Xmx1G","-Djava.util.Arrays.useLegacyMergeSort=true","-Dalpha.gameDir="+game.toAbsolutePath(),"-Djava.library.path="+game.resolve("natives").toAbsolutePath(),
                 "-Dorg.lwjgl.librarypath="+game.resolve("natives").toAbsolutePath(),"-cp",String.join(File.pathSeparator,cp),"net.minecraft.client.Minecraft","Player","-");
     }
     static List<Path> resolveLibraries(Path minecraft,Map<String,Object> metadata,String os,Path natives)throws IOException{

@@ -21,6 +21,7 @@ public final class DirectLaunchTests {
             try(ZipOutputStream out=new ZipOutputStream(Files.newOutputStream(jar))){out.putNextEntry(new ZipEntry("lwjgl.dll"));out.write(new byte[]{1,2});out.closeEntry();out.putNextEntry(new ZipEntry("META-INF/readme.txt"));out.write(1);out.closeEntry();}
             DirectAlphaLaunch.extractNatives(jar,natives);check(Files.size(natives.resolve("lwjgl.dll"))==2);check(!Files.exists(natives.resolve("META-INF/readme.txt")));
             List<String> command=DirectAlphaLaunch.command(root.resolve("java with spaces.exe"),root.resolve("patched client.jar"),List.of(libraries.resolve("test.jar")),root.resolve("game with spaces"));
+            check(command.contains("-Djava.util.Arrays.useLegacyMergeSort=true"));
             check(command.stream().noneMatch(s->s.contains("javaagent")||s.contains("launchwrapper")||s.contains("accessToken")));check(command.get(command.size()-2).equals("Player"));
             Path resources=root.resolve("legacy");Files.createDirectories(resources.resolve("newsound/step"));Files.write(resources.resolve("newsound/step/stone1.ogg"),new byte[]{1});
             check(OriginalResourceCopy.copyLegacyFolder(resources,root.resolve("resources"))==1);check(Files.exists(root.resolve("resources/newsound/step/stone1.ogg")));

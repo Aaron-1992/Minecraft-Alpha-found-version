@@ -2,7 +2,7 @@
 
 ## Still getting exit code 1? Start here
 
-**0.6.0 adds experimental direct single-player launch and install-time patches for the inspected a1.0.16 client.** The user confirmed the separate vanilla Recovery installation runs. Modded gameplay and sound playback on the user's PC are not yet verified.
+**0.6.1 adds experimental direct single-player launch and install-time patches for the inspected a1.0.16 client.** The user confirmed the separate vanilla Recovery installation runs. Modded gameplay and sound playback on the user's PC are not yet verified.
 
 ### Play without the official launcher
 
@@ -34,11 +34,11 @@ The custom software renderer cannot reproduce all of Minecraft Alpha's behavior 
 
 **This mode uses your existing launcher, not direct game execution from our EXE.** Choose vanilla setup or explicitly install experimental environmental changes through a Java runtime agent. Performance and appearance are those of your original Alpha client, subject to its compatibility with your hardware/launcher. There are no benchmarked speedup claims for the original game.
 
-### Windows compatibility rebuild (0.6.0)
+### Windows compatibility rebuild (0.6.1)
 
 The reported exit-code-1 cause is **not known** without its exception. This rebuild addresses startup risks rather than claiming that exact crash has been reproduced.
 
-1. Download **`AlphaDesktop-0.6.0.exe`** from [GitHub Releases](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), install and open AlphaDesktop.
+1. Download **`AlphaDesktop-0.6.1.exe`** from [GitHub Releases](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), install and open AlphaDesktop.
 2. **Close Minecraft Launcher**, choose **Original Alpha → Install compatibility build** and select your installed Alpha JAR if asked.
 3. Setup copies the bundled Java 8 runtime into the isolated compatibility directory and tests the actual packaged agent in a separate JVM **before** writing its launcher profile. Wait for this check; on failure the profile is not enabled and local details remain in `mods/agent-preflight.log`.
 4. Open your usual Minecraft Launcher → Java Edition → Installations → **Alpha Found - Compatibility** → Play. Use this **new** installation, not the previous `Alpha Found` entry. Create a new world.
@@ -96,7 +96,7 @@ Original Minecraft assets are required: a legacy JAR containing `terrain.png`, G
 
 Original title textures (`title/mclogo.png`, `gui/logo.png`, `logo.png`) and cloud masks (`environment/clouds.png`, `clouds.png`) are loaded when present. If absent, clouds are omitted and the title uses the original bitmap font. All block surfaces, font, hotbar, crosshair and recordings come from original assets supplied locally; no generated replacement textures, fonts, logos or synthesized effects are bundled.
 
-### Fallback performance changes in 0.6.0
+### Fallback performance changes in 0.6.1
 
 - Precomputed normalized camera rays instead of per-pixel square roots every frame.
 - Original cloud pixels cached outside the render loop.
@@ -136,20 +136,20 @@ Source builds require **JDK 17+ and Maven 3.8+**:
 ```sh
 mvn -f agent/pom.xml clean package
 mvn clean package
-java -jar target/alpha-desktop-0.6.0.jar
+java -jar target/alpha-desktop-0.6.1.jar
 ```
 
 `build.bat` / `build.sh` also build the shaded JAR with its Ogg decoder. Cross-platform JAR downloads require Java 17+; the Windows EXE bundles Java for this app. The official launcher separately manages the runtime for the original game.
 
 ```sh
 # Prepare the real Alpha installation (native dialogs):
-java -jar target/alpha-desktop-0.6.0.jar --original
+java -jar target/alpha-desktop-0.6.1.jar --original
 
 # Custom sandbox, with native asset dialogs:
-java -jar target/alpha-desktop-0.6.0.jar --prototype
+java -jar target/alpha-desktop-0.6.1.jar --prototype
 
 # Custom sandbox with explicit local asset paths:
-java -jar target/alpha-desktop-0.6.0.jar \
+java -jar target/alpha-desktop-0.6.1.jar \
   --client-jar "/path/to/alpha.jar" \
   --minecraft-dir "/path/to/.minecraft" \
   --sounds "/path/to/original/sound"
@@ -179,3 +179,7 @@ The custom sandbox retains restrained fog variation and solitude without jumpsca
 ### Runtime licensing
 
 The Windows release contains OpenJDK/Temurin 17 and 8 runtime distributions, separate from proprietary Minecraft files. Runtime license/notice files and Java 8 build metadata accompany them. Upstream source and build information are available from [Adoptium jdk8u](https://github.com/adoptium/jdk8u) and [Temurin 8 binaries](https://github.com/adoptium/temurin8-binaries); inspect the bundled `release` file for its build version. No Java runtime is fabricated or replaced with generated media.
+
+### Java 8 renderer sort compatibility (0.6.1)
+
+Direct play includes `-Djava.util.Arrays.useLegacyMergeSort=true`. The user's 0.6.0 world-creation trace showed `Comparison method violates its general contract!` in Java 8 TimSort called by the original Alpha renderer (`e.a`, `ig.c`). Java 8's legacy sorting option avoids that TimSort contract check; it does not repair the old comparator or prove world creation now succeeds. The setting applies only to the separate game subprocess, not other installations.
