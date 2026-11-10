@@ -1,24 +1,28 @@
-# Alpha Desktop 0.8.0 — watcher scenes and a seven-event preview cycle
+# Alpha Desktop 0.9.0 — returning sightings and longer sound sequences
 
-## New scenes
+The event palette expands from seven to fourteen types/variations. F6 previews them in order, one release-and-press per event:
 
-- A transient **black humanoid watcher**, reusing Alpha's original zombie model/texture under black tint, not a generated skin. It attempts to appear on suitable ground in an already-loaded chunk, 27 blocks away (20 for previews). No nearby/in-your-face spawning, new terrain generation or block edits for placement.
-- The watcher has no AI tick, attacks, collision, damage response or persistence. It expires after about 3.25 seconds naturally (8 seconds in preview), disappears on approach within 12 blocks, or after being seen and then looking away. It is removed on menu/world changes. It can be hidden by terrain; a request is not guaranteed visibility.
-- A crossing variation briefly moves the watcher sideways before it disappears. This is a short scene, not general stalking/pathfinding AI.
-- Renderer black tint is scoped to the watcher model draw. Original models/textures are used; normal mobs retain their normal renderer path. GL color/lighting state is saved and restored, including when the model draw throws.
+1. Watcher
+2. Crossing
+3. Footstep echo
+4. Unexplained click
+5. Smoke
+6. Fog drift
+7. HUD drift
+8. **Second look** — up to two delayed reappearances, alternating sides, using fresh safe placement checks.
+9. **Orbit steps** — a short stopped-player footstep sequence with changing sound direction.
+10. **Distant knocks** — quiet original wood sounds from farther away; not a new recording.
+11. **False digging** — a short original gravel-sound sequence without block damage.
+12. **Long watch** — a stationary sighting lasting up to eight seconds naturally, unless approach/look-away removes it earlier.
+13. **Behind you** — an attempted distant sighting behind the initial view direction, not an in-your-face spawn.
+14. **Afterimage** — brief watcher/particle/fog combination with one delayed return. Not an actual framebuffer afterimage or new shader.
 
-## Sounds and apparent deterioration
+## More pressure, still bounded
 
-- Footstep-echo event schedules three quieter original stone steps after the player stops moving. Unexplained original click/pop/wood/grass/gravel cues and smoke scenes remain. Normal sound controls apply; missing recordings remain unavailable.
-- Temporary smooth fog-distance drift and cosmetic 1–2-pixel text-position drift suggest instability without rewriting text, game settings or saves. Opening a menu clears text drift. This is not texture/mesh corruption or a simulated system crash.
-- Existing escalation: 4–9-minute active-play intervals initially, 2–4 minutes after 20 minutes, 45–120 seconds after 40 minutes. Frequency is capped; volume does not ramp up. Timers reset on process restart.
+Initial natural event gaps are now 2–4 minutes. After 15 active minutes they become 60–150 seconds; after 35 minutes, 30–90 seconds. Menus/pausing do not advance the timer. Volume does not ramp up. Sound sequences contain only a few cues with 10–26-tick gaps and wait while the player is moving. The sound positions and event/sequence requests are recorded in the latest log.
 
-## F6: preview the actual event types
+Returning watchers remain distant: natural placement 27 blocks away, previews 20. No appearances within 12 blocks; approaching removes the figure and cancels that return opportunity. Reappearance can follow timeout or looking away. Ground and already-loaded-chunk checks can skip a scene; nothing teleports the player or edits terrain to force placement. Press F6 and wait if previewing a sequence; immediately advancing again replaces its pending sequence.
 
-Each release-and-press advances one event: **Watcher → Crossing → Footstep echo → Unexplained click → Smoke → Fog drift → HUD drift**, then repeats. Some keyboards require Fn+F6. Watcher placement still respects loaded terrain/ground checks; it does not teleport the player or force unsafe placement. Scene spawn/skip/removal and event names are recorded in the latest session log, not in chat. No more all-effects-at-once preview.
+All watcher geometry/textures and recordings remain original Minecraft assets. Black tint is scoped/restored. No attacks, collision, saved watcher entities, new skins/audio, leaf stripping, flashing overlays, actual save corruption, fake system errors or deliberate crashes. Existing procedural terrain anomalies still persist in saves; cosmetic scenes do not. 60 FPS cap, Java 8 sorting compatibility and latest-session export remain.
 
-## Retained safeguards and verification limits
-
-60 FPS cap, Java 8 sort compatibility, latest-session-only export and original-sound loading fix remain. Leaf stripping stays removed. Prior procedural corridor/sand/gravel edits remain and persist in saves; new watcher/HUD effects do not persist. No generated assets, loud stingers, jumpscares, fake system errors, control lockout or deliberate crashes. Original Minecraft clients/code/media are not distributed.
-
-Added generated-class fixtures for non-collision/non-persistence and render-state cleanup, plus event-cycle/interval tests. The privately supplied client was patched and bytecode-checked; the watcher was constructed against the actual client in a headless JVM and its no-collision/no-serialization overrides exercised. **These are not GPU rendering, original-game gameplay, watcher visibility or audio verification.** Earlier AMD timeout cause remains unknown. If a driver reset returns, stop retrying and export the latest session report.
+Tests cover the complete F6 palette, bounded interval ranges, original sound-key whitelist, watcher non-persistence/non-collision and render-state cleanup. Automated tests and packaging checks do not verify GPU stability, scene visibility, sound availability or gameplay. If a driver timeout returns, stop retrying and export the latest session report.
