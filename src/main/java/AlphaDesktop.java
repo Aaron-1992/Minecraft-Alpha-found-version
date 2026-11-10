@@ -294,7 +294,7 @@ public final class AlphaDesktop extends Canvas implements Runnable {
                     if(!decoder)throw new IOException("Bundled original Ogg decoder is missing");
                     System.out.println("Desktop runtime and original Ogg decoder are available.");
                 }
-                case "--help" -> System.out.println("Alpha Desktop "+LaunchSession.VERSION+"\nOpen without arguments: Play latest / Save latest session report / Close.\nLegacy play modes are retired. Installed original a1.0.16 client and dependencies required.");
+                case "--help" -> System.out.println("Alpha Desktop "+LaunchSession.VERSION+"\nOpen without arguments: Play Alpha / Save session report / Close.\nLegacy play modes are retired. Installed original a1.0.16 client and dependencies required.");
                 default -> throw new IOException("Unknown or retired option. Open AlphaDesktop without arguments for Play latest.");
             }
         }catch(Exception e){error(e.getMessage()==null?e.toString():e.getMessage());System.exit(1);}

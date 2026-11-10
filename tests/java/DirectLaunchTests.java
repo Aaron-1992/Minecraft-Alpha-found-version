@@ -31,6 +31,10 @@ public final class DirectLaunchTests {
             LaunchSession latest=LaunchSession.begin(data);Files.writeString(latest.directory.resolve("game.log"),"LATEST OUTPUT even without exception");latest.finished(-805306369);
             String report=LaunchSession.report(data);check(report.contains("LATEST OUTPUT"));check(report.contains("-805306369"));check(report.contains("state: EXITED"));check(!report.contains("FIRST SESSION")&&!report.contains("OLD 0.5.2"));
             check(command.contains("-Dalpha.scheduledSounds=true"));
+            String welcome=LauncherHome.welcome(),notice=DirectAlphaLaunch.launchNotice();
+            check(welcome.contains("Minecraft Alpha a1.0.16"));check(welcome.contains("Unofficial"));
+            check(!welcome.contains("F6")&&!welcome.contains("F7")&&!welcome.contains("F8"));
+            check(notice.contains("permanently")&&notice.contains("backed up"));
             System.out.println("PASS direct launch rules, local artifacts/checksums, native extraction, no-agent command and legacy sound import");
         }finally{try(var files=Files.walk(root)){for(Path p:files.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}
     }

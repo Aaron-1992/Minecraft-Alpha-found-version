@@ -17,7 +17,7 @@ final class DirectAlphaLaunch {
         }
         OriginalAlphaInstallation.Client client=OriginalAlphaInstallation.inspect(jar);
         int[] consent={-1};SwingUtilities.invokeAndWait(()->consent[0]=JOptionPane.showConfirmDialog(null,
-                "Experimental build: earlier builds had AMD driver timeouts; this update is not gameplay/GPU verified.\n60 FPS cap retained. Reactive encounters enabled. F6 previews; F7 cancels.\nCancel if your graphics driver is still unstable. Do not repeatedly retry after a reset.\n\nSingle-player only: this tool does not sign in or read account tokens.\nUses your locally installed client/libraries and bundled Java 8 on Windows.\nOriginal JAR, launcher profiles and Recovery worlds remain untouched.\nA separate patched-engine folder holds this mod's worlds.\n\nOriginal sound recordings are copied when locally available; nothing is downloaded.\nAnomalies can permanently change terrain, signs, chests and item durability.\nExisting mod saves are backed up once before this upgrade. Use a new world for testing.",
+                launchNotice(),
                 "Alpha - Play directly",JOptionPane.OK_CANCEL_OPTION));if(consent[0]!=JOptionPane.OK_OPTION)return;
         Path game=data.resolve("patched-engine").resolve(client.version());Files.createDirectories(game);
         Path runtime=LegacyRuntime.installIfAvailable(game);
@@ -66,6 +66,9 @@ final class DirectAlphaLaunch {
             if(result!=0)throw new IOException("Alpha exited with code "+result+". Use Save latest session report in this launcher. If the AMD driver reset, stop testing; its cause is unresolved.");
         }catch(Exception e){session.failed(e);throw e;}
 
+    }
+    static String launchNotice(){
+        return "Launch Minecraft Alpha a1.0.16 using your installed client and libraries.\nWindows Java 8 is included. No account sign-in or dependency downloads.\n\nYour original client and other installations remain unchanged.\nThis community build uses separate saves and includes gameplay adjustments\nthat can permanently change saved worlds and inventory.\nExisting saves are backed up once before this upgrade.\nUse a copy of any important world. Backups are not an undo feature.\n\nOriginal sound recordings are imported only when available locally.\n60 FPS limit enabled. This build is not gameplay/GPU verified.\nIf your graphics driver resets, stop rather than repeatedly retrying.";
     }
     static String currentOs(){String os=System.getProperty("os.name").toLowerCase(Locale.ROOT);return os.contains("win")?"windows":os.contains("mac")?"osx":"linux";}
     static String digest(Path file)throws Exception{

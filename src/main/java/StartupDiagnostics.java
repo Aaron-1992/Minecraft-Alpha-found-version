@@ -81,7 +81,7 @@ final class StartupDiagnostics {
         }
         candidates=candidates.stream().distinct().sorted((a,b)->Long.compare(modified(b),modified(a))).limit(24).toList();
         Finding selected=new Finding("UNKNOWN","No specific failure was found in the available local log excerpts. Exit code 1 alone is not a diagnosis.",List.of());
-        StringBuilder report=new StringBuilder("Alpha Found 0.13.0 - legacy startup diagnostic (not the latest-session report)\nGenerated: "+Instant.now()+"\nOS: "+System.getProperty("os.name")+" "+System.getProperty("os.arch")+"\nSetup Java (not proof of game Java): "+System.getProperty("java.version")+"\n\n");
+        StringBuilder report=new StringBuilder("Alpha Found 0.14.0 - legacy startup diagnostic (not the latest-session report)\nGenerated: "+Instant.now()+"\nOS: "+System.getProperty("os.name")+" "+System.getProperty("os.arch")+"\nSetup Java (not proof of game Java): "+System.getProperty("java.version")+"\n\n");
         report.append("Read-only scan of known launcher/game log paths. Tails are bounded; only redacted failure excerpts are exported.\nNo account files, full launch commands or original logs are copied. Nothing is uploaded.\nA log excerpt may describe an older/different launch; its timestamp is shown, not treated as proof of the current cause.\n\n");
         int excerpts=0;
         for(Path file:candidates){
@@ -94,7 +94,7 @@ final class StartupDiagnostics {
                 for(String line:finding.evidence)report.append(line).append('\n');report.append('\n');
             }catch(IOException|SecurityException e){report.append("One candidate log could not be read; its content was not exported.\n");}
         }
-        report.append("Summary (possible cause, not verified): ").append(selected.category).append("\n").append(selected.explanation).append("\n\nThe recovery installation has no agent and uses a separate directory. It is a diagnostic baseline, not the horror mod. Original client execution remains unverified.\n");
+        report.append("Summary (possible cause, not verified): ").append(selected.category).append("\n").append(selected.explanation).append("\n\nThe recovery installation has no agent and uses a separate directory. It is a diagnostic baseline, not the community build. Original client execution remains unverified.\n");
         return new Report(selected,report.toString());
     }
     static String readTail(Path file)throws IOException{

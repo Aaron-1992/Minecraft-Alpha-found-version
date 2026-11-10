@@ -61,13 +61,13 @@ public final class AmbientHooks {
         activeTicks++;
         if(!cues.isEmpty()){
             Cue cue=cues.removeFirst();fixedAudio=true;cueX=cue.x;cueY=cue.y;cueZ=cue.z;cueGain=cue.gain;cuePitch=cue.pitch;
-            System.out.println("[Alpha director] anchored soundRequest="+cue.sound);return cue.sound;
+            AmbientHooksLog.debug("[Alpha runtime] anchored soundRequest="+cue.sound);return cue.sound;
         }
         if(!Boolean.parseBoolean(System.getProperty("alpha.scheduledSounds","true")))return null;
         if(!forceEvent&&echoes>0&&!Scene.moving&&--echoDelay<=0){
             echoes--;echoDelay=10+atmosphere.nextInt(17);
             if(orbitSound)audioAngle+=65;
-            System.out.println("[Alpha ambience] sequence="+lastEvent+" remaining="+echoes+" soundRequest="+sequenceSound);return sequenceSound;
+            AmbientHooksLog.debug("[Alpha runtime] sequence="+lastEvent+" remaining="+echoes+" soundRequest="+sequenceSound);return sequenceSound;
         }
         if(!forceEvent&&(Scene.director.active()||AmbientHooksAnomalies.active()))return null;
         if(!forceEvent&&--quietTicks>0)return null;
@@ -80,7 +80,7 @@ public final class AmbientHooks {
         if(!preview)state.mark(EVENT_NAMES[kind]);
         replaceScene=true;
         lastEvent=EVENT_NAMES[kind];
-        if(kind>=23){anomalyRequest=kind-23;++events;sceneRequest=false;encounterRequest=-1;System.out.println("[Alpha anomaly] selected="+lastEvent+" preview="+preview);return null;}
+        if(kind>=23){anomalyRequest=kind-23;++events;sceneRequest=false;encounterRequest=-1;AmbientHooksLog.debug("[Alpha runtime] selected="+lastEvent+" preview="+preview);return null;}
         particle=kind==4||kind==13;
         audioAngle=135;audioRadius=6;orbitSound=false;sceneReturns=0;sceneLifetime=65;
         sceneRequest=kind==0||kind==1||kind==7||kind==11||kind==12||kind==13;sceneCrossing=kind==1;scenePreview=preview;
@@ -97,7 +97,7 @@ public final class AmbientHooks {
         String[] sounds={"step.grass","step.wood","step.stone","random.click","random.pop","step.gravel","step.wood","step.grass","step.stone","step.wood","step.gravel","step.grass","step.gravel","random.pop"};
         if(kind>=14){encounterRequest=kind-14;encounterPreview=preview;}
         String sound=kind>=14?null:sounds[kind];
-        System.out.println("[Alpha ambience] tick="+activeTicks+" event="+events+" type="+EVENT_NAMES[kind]+" preview="+preview+" soundRequest="+sound);
+        AmbientHooksLog.debug("[Alpha runtime] tick="+activeTicks+" event="+events+" type="+EVENT_NAMES[kind]+" preview="+preview+" soundRequest="+sound);
         return sound;
     }
     static int eventCount(){return EVENT_NAMES.length;}
@@ -138,19 +138,19 @@ public final class AmbientHooks {
                     x=entity.getField("ah");y=entity.getField("ai");z=entity.getField("aj");yaw=entity.getField("an");pitch=entity.getField("ao");previousX=x.getDouble(player);previousZ=z.getDouble(player);
                 }
                 player=nextPlayer;px=x.getDouble(player);py=y.getDouble(player);pz=z.getDouble(player);facing=yaw.getFloat(player);lookingPitch=pitch.getFloat(player);ticks++;AmbientHooksState.of(world).tick();
-                if(cancelRequested){cancelRequested=false;cancel();forceEvent=false;forcedIndex=-1;echoes=0;particle=false;textUntil=0;driftUntil=0;previewFogUntil=0;quietTicks=Math.max(quietTicks,400);System.out.println("[Alpha director] cancelled by F7");return;}
+                if(cancelRequested){cancelRequested=false;cancel();forceEvent=false;forcedIndex=-1;echoes=0;particle=false;textUntil=0;driftUntil=0;previewFogUntil=0;quietTicks=Math.max(quietTicks,400);AmbientHooksLog.debug("[Alpha runtime] cancelled by F7");return;}
                 if(pendingRemoval){remove();if(pendingRemoval)return;}
                 moving=Math.hypot(px-previousX,pz-previousZ)>.025;previousX=px;previousZ=pz;
                 trail[trailCursor][0]=px;trail[trailCursor][1]=py;trail[trailCursor][2]=pz;trailCursor=(trailCursor+1)%trail.length;trailCount=Math.min(trail.length,trailCount+1);
                 if(ticks%20==0){sheltered=read((int)Math.floor(px),(int)Math.floor(py)+3,(int)Math.floor(pz))!=0;groundMaterial=read((int)Math.floor(px),(int)Math.floor(py)-1,(int)Math.floor(pz));}
                 if(replaceScene){int requested=encounterRequest,anomaly=anomalyRequest;boolean legacy=sceneRequest;cancel();encounterRequest=requested;anomalyRequest=anomaly;sceneRequest=legacy;replaceScene=false;}
                 if(anomalyRequest>=0){int requested=anomalyRequest;anomalyRequest=-1;AmbientHooksAnomalies.begin(requested,scenePreview);}
-                try{AmbientHooksAnomalies.tick();}catch(Exception error){AmbientHooksAnomalies.cancel(false);System.err.println("[Alpha anomaly] safely cancelled: "+error.getClass().getSimpleName()+": "+error.getMessage());}
+                try{AmbientHooksAnomalies.tick();}catch(Exception error){AmbientHooksAnomalies.cancel(false);System.err.println("[Alpha runtime] safely cancelled: "+error.getClass().getSimpleName()+": "+error.getMessage());}
                 if(encounterRequest>=0){
                     int mode=encounterRequest;encounterRequest=-1;cancel();scenePreview=encounterPreview;
                     director.begin(AmbientHooksDirector.Mode.values()[mode],scenePreview);
                     double angle=Math.toRadians(facing+70);anchorX=px-Math.sin(angle)*14;anchorY=py;anchorZ=pz+Math.cos(angle)*14;
-                    System.out.println("[Alpha director] started mode="+director.mode()+" preview="+scenePreview);
+                    AmbientHooksLog.debug("[Alpha runtime] started mode="+director.mode()+" preview="+scenePreview);
                 }
                 if(director.active()){tickDirector();return;}
                 if(figure!=null){
@@ -166,7 +166,7 @@ public final class AmbientHooks {
             }catch(Throwable error){
                 if(error instanceof ThreadDeath)throw (ThreadDeath)error;if(error instanceof VirtualMachineError)throw (VirtualMachineError)error;
                 try{cancel();}catch(Exception ignored){}disabled=true;
-                System.err.println("[Alpha scene] disabled after "+error.getClass().getSimpleName()+": "+error.getMessage());
+                System.err.println("[Alpha runtime] disabled after "+error.getClass().getSimpleName()+": "+error.getMessage());
             }
         }
         static void cancel()throws Exception{AmbientHooksAnomalies.cancel(false);anomalyRequest=-1;returns=0;returnDelay=0;sceneRequest=false;encounterRequest=-1;remove();director.reset();trailCount=0;trailCursor=0;loggedPhase=director.phase();cues.clear();}
@@ -176,7 +176,7 @@ public final class AmbientHooks {
             input.nearAnchor=Math.hypot(anchorX-px,anchorZ-pz)<8;input.moving=moving;
             double turn=Math.abs(Math.IEEEremainder(facing-lastFacing,360));lastFacing=facing;input.turned=turn>25;
             AmbientHooksDirector.Action action=director.tick(input);
-            if(action.phase!=loggedPhase){System.out.println("[Alpha director] phase="+action.phase+" mode="+director.mode());loggedPhase=action.phase;}
+            if(action.phase!=loggedPhase){AmbientHooksLog.debug("[Alpha runtime] phase="+action.phase+" mode="+director.mode());loggedPhase=action.phase;}
             if(action.remove)remove();
             if(action.cue){
                 if(director.mode()==AmbientHooksDirector.Mode.LOST_FOOTSTEPS){
@@ -195,7 +195,7 @@ public final class AmbientHooks {
             if(action.step&&figure!=null&&ticks%4==0){
                 double dx=px-fx,dz=pz-fz,len=Math.hypot(dx,dz);
                 if(len>0){double amount=action.speed*4;double mx=dx/len*amount,mz=dz/len*amount;if(action.sideways){double swap=mx;mx=-mz;mz=swap;}
-                    if(!move(mx,mz)){remove();System.out.println("[Alpha director] movement blocked; withdrew without editing terrain");}
+                    if(!move(mx,mz)){remove();AmbientHooksLog.debug("[Alpha runtime] movement blocked; withdrew without editing terrain");}
                 }
             }
             if(!director.active())quietTicks=Math.max(quietTicks,300);
@@ -294,9 +294,9 @@ public final class AmbientHooks {
                 if(Double.isNaN(by)||protectedAt(bx,by,bz))continue;
                 Object candidate=Class.forName("AlphaWatcher",true,world.getClass().getClassLoader()).getConstructor(Class.forName("cj",false,world.getClass().getClassLoader())).newInstance(world);
                 fx=bx;fy=by;fz=bz;position.invoke(candidate,fx,fy,fz,(float)Math.toDegrees(Math.atan2(-(px-fx),pz-fz)),0f);
-                if((Boolean)spawn.invoke(world,candidate)){figure=candidate;age=0;seen=false;life=lifetime;rayVisible=lineClear(px,py+1.62,pz,fx,fy+1,fz);System.out.println("[Alpha scene] watcher spawned; preview="+scenePreview+" director="+director.active());return;}
+                if((Boolean)spawn.invoke(world,candidate)){figure=candidate;age=0;seen=false;life=lifetime;rayVisible=lineClear(px,py+1.62,pz,fx,fy+1,fz);AmbientHooksLog.debug("[Alpha runtime] watcher spawned; preview="+scenePreview+" director="+director.active());return;}
             }
-            System.out.println("[Alpha scene] skipped: bounded placement search found no suitable loaded ground");
+            AmbientHooksLog.debug("[Alpha runtime] skipped: bounded placement search found no suitable loaded ground");
         }
     }
     private static final class Pending {

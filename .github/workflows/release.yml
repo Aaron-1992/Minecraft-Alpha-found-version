@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  VERSION: '0.13.0'
+  VERSION: '0.14.0'
 
 jobs:
   build:
@@ -59,7 +59,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '8'
-      - name: Test encounter logic and scene adapter on Java 8
+      - name: Test runtime compatibility on Java 8
         run: java -cp "agent/target/classes:agent/target/test-classes:agent/target/dependency/*" org.junit.runner.JUnitCore alpha.ambient.AnomalyTest alpha.ambient.StateTest alpha.ambient.DirectorTest alpha.ambient.SceneIntegrationTest alpha.ambient.WatcherTest alpha.ambient.OfflinePatcherTest alpha.ambient.AmbientAgentTest
       - name: Smoke-test live instrumentation on legacy Java 8
         run: java "-javaagent:agent/target/alpha-ambient-agent-${VERSION}.jar=alpha/ambient/AgentSmoke\$Chunk" -cp agent/target/test-classes alpha.ambient.AgentSmoke
@@ -168,6 +168,6 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title "Alpha Desktop ${VERSION} — Windows EXE preview ${GITHUB_RUN_NUMBER}" \
+            --title "Alpha Desktop ${VERSION} — Windows launcher" \
             --notes-file RELEASE_NOTES.md \
             release/*

@@ -1,4 +1,4 @@
-param([string]$Version = "0.13.0")
+param([string]$Version = "0.14.0")
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
@@ -11,7 +11,7 @@ Copy-Item "target/alpha-desktop-$Version.jar" $InputDir
 # This is a real Windows launcher and a private Java runtime, not a renamed JAR.
 & jpackage --type app-image --name AlphaDesktop --app-version $Version `
     --input $InputDir --main-jar "alpha-desktop-$Version.jar" --main-class AlphaDesktop `
-    --dest $ImageDir --vendor "Alpha Desktop" --description "Alpha-inspired desktop sandbox" `
+    --dest $ImageDir --vendor "Alpha Desktop" --description "Unofficial Minecraft Alpha a1.0.16 launcher" `
     --add-modules "java.desktop,java.prefs,java.logging,java.xml,java.naming,java.instrument,jdk.unsupported" `
     --jlink-options "--strip-debug --no-header-files --no-man-pages" `
     --java-options "-Dfile.encoding=UTF-8"
@@ -53,7 +53,7 @@ Compress-Archive -Path $App -DestinationPath "release/AlphaDesktop-$Version-wind
 # Hosted Windows 2022 runners provide WiX 3 for jpackage's native installer.
 if ($env:WIX) { $env:Path = "$env:WIX/bin;$env:Path" }
 & jpackage --type exe --name AlphaDesktop --app-version $Version --app-image $App `
-    --dest release --vendor "Alpha Desktop" --description "Alpha-inspired desktop sandbox" `
+    --dest release --vendor "Alpha Desktop" --description "Unofficial Minecraft Alpha a1.0.16 launcher" `
     --win-per-user-install --win-dir-chooser --win-menu --win-shortcut `
     --win-upgrade-uuid "d5649b47-8517-4e7f-a89d-fd85396f9f50"
 if ($LASTEXITCODE -ne 0) { throw "Windows installer packaging failed" }

@@ -1,52 +1,15 @@
-# Alpha Desktop 0.13.0 — forty-rule anomaly expansion
+# Alpha Desktop 0.14.0
 
-Forty new context-dependent rule handlers join the previous 23 selections. All four saved corruption tiers and the saved 20-active-minute repeat lock apply to the unified weighted pool. This is an original exact-Alpha implementation, not borrowed mod source/assets or an unlimited reproduction of the supplied prompt.
+Unofficial Windows launcher for Minecraft Alpha a1.0.16.
 
-**Permanent world changes are enabled:** signs, chests, durability, structures, local canopy cuts and one natural chunk scar can change the mod's saves. Before first launching existing mod saves on this upgrade, the native launcher makes a one-time `world-backups/before-0.13.0.zip`. Original/Recovery worlds are separate. Use a new or copied world. F7 is cancel, not undo.
+- Direct local launch with bundled Java 8 and original local resources.
+- Simplified launcher presentation and Windows installer description.
+- Separate saves and one-time pre-upgrade backup of existing saves.
+- Latest-session reports and a retained 60 FPS limit.
+- Routine runtime tracing is disabled by default; actual faults remain in local diagnostics.
 
-- **F6:** full 63-selection cycle, previous order first.
-- **F8:** the new forty rules only. Release between presses; wait and supply the needed context. Durability/chest/phantom-step are the first three.
-- **F7:** clear transient sounds/fog/sky/audio changes, restore suspended AI, and safely retire figures/markers. Visible removals are deferred.
-- Original renderer frustum snapshots + conservative facing protection + loaded-voxel preflight and original-client block-shape rays guard mod-induced edits and spawns/removals. Missing/stale snapshots deny changes; no forced chunk generation.
-- Added contextual sounds, coal-conserving chest changes, pork-conserving furnace cooking, sign/crop/painting/boat changes, coordinated animal staring, cave structures, compact base echo/mirror room, original-player-model watcher/replay, visual sky/sun changes, music pitch warp, faded silence, cave loops and bounded terrain anomalies.
-- Adaptations: capped partial base capture, maximum three cave loops, rotation-only boats, water not lava, no later-version items or invented crouch, and temporary original torchlight rather than a new distant-light renderer. Read `docs/ANOMALIES.md` for exact rules/limits and the numbered preview order.
-- 78 JUnit tests plus desktop/save-backup suites. Local private-client stack/NBT/linkage checks and Windows packaging are distinct from in-game testing. No gameplay, camera-edge, audio-perception or AMD-driver stability claim.
-- Original assets/audio only; no chat hints, jumpscare overlays, mod attacks, deliberate crashes, original-JAR overwrite or proprietary redistribution.
+Requires your installed original client, matching JSON, libraries and natives. No official-launcher sign-in, automatic dependency downloads or Minecraft asset redistribution.
 
----
+This community build includes compatibility and gameplay adjustments and is not an unchanged vanilla client. Saved worlds and inventory can change permanently; use a copy of an important world. Existing saves receive a one-time backup at `world-backups/before-0.14.0.zip`. New worlds created later need separate backups.
 
-## 0.12.0 — persistence and visibility foundations
-
-This is the first foundation batch for the requested 40+ anomaly design, **not a completed 40-event implementation**. The existing 23-event preview palette remains.
-
-- Persist `CorruptionLevel` (0–100), `AlphaActiveTicks`, and stable `AlphaLast_<event>` timestamps inside the vanilla `level.dat` Data compound. No separate save-file writer; vanilla retains its normal save/backup transaction.
-- Four active-play tiers: day 1–4, 5–10, 11–18, and 19 onward. Days mean 24,000 active ticks, not wall-clock dates. Pausing/menu time does not advance corruption. Existing worlds start counting from this update.
-- Natural events use tier-gated weighted selection. Each event has a 24,000-active-tick (20 minute) repeat lock that survives normal save/reload. Exhaustion produces silence. F6 intentionally bypasses eligibility without recording a natural occurrence. Cooldowns are per world; progression is monotonic.
-- Conservative visibility guard: protect an oversized view cone around the camera, checking model extremities. Spawn only outside it, defer removal while inside it. This deliberately protects through walls too; it is **not yet the actual renderer frustum**. F7 cancels cues immediately but a visible actor remains until safely removable. Inventory and pause screens freeze the scene; world exit cleans up actors in the no-longer-rendered world.
-- Replace sampled observation rays with bounded voxel traversal; unloaded reads remain forbidden. This is block-level traversal, not exact Alpha block-shape collision.
-- Disable legacy terrain mutations and smoke-particle pops pending a proper visibility-aware mutation transaction. No chest/sign/inventory tampering, destructive leaf carving, chunk scars, teleport loops or base replication added.
-- 42 authored automated tests, including persistence round-trip, cooldown boundary, world isolation, tier exhaustion, and visibility-aware F7 behavior. Packaging and bytecode verification do not establish gameplay/GPU stability.
-
-
-# Alpha Desktop 0.11.0 — folklore encounters with different rules
-
-Four new encounter modes join the reactive director; this is now nine encounter modes plus fourteen ambient variations. These are original folklore-inspired scenarios, not literal recreations of named characters or other mods. All figures still reuse the original Alpha humanoid model with black tint. No new skins, generated assets or borrowed mod recordings.
-
-## New encounters
-
-- **Treeline / Herobrine-style sighting:** placement requires an actual nearby log/trunk on suitable already-loaded terrain. Direct observation for eight ticks makes the figure vanish rather than advance. Up to two repositioned returns are possible. No leaf removal, tree damage or new tree generation; treeless terrain can skip the scene.
-- **Null-inspired lurker:** a farther-off-angle black figure disappears under sustained direct observation. It never advances and does not return during that encounter. This is not a screen blackout or damage effect.
-- **Lost footsteps:** original footstep sounds are emitted from recorded positions along your recent route, rather than following the camera. The route buffer is in memory and capped at 40 active ticks. Moving produces cues; a sufficiently sharp turn after the opening delay can trigger a separate distant sighting. If you ignore it, a bounded timeout ends/progresses it. Ground under the player selects an existing stone/grass/wood/sand/gravel sound family.
-- **Repetition / Far Lands-style unease:** four identical anchored cues at fixed intervals, accompanied by temporary small HUD-position and fog-distance drift. No entity is spawned. This is a repetition illusion, not real Far Lands generation, broken geometry or file corruption.
-
-## Controls and behavior
-
-F6 previews the nine director modes first: Stalk → Lure → Interception → Pass-by → Turn-around → Treeline → Null lurk → Lost footsteps → Repeater. The fourteen older variations follow. Release between presses, then wait for the encounter to develop. Move during Lost footsteps; the treeline encounter needs trees. F7 cancels active/pending scenes, as before.
-
-The nine director modes share the existing 65% natural director-selection weight, rather than stacking more independent timers. Sheltered locations favor lure or repetition; movement-dependent natural selections are redirected when stationary. Existing escalation/cooldowns, minimum-distance checks, sampled gaze/occlusion, grounded movement, original-sound loading, 60 FPS cap and latest-session logs remain.
-
-No attacks, jumpscares, chat hints, control lockout, leaf stripping, player teleportation, save damage, desktop effects or deliberate crashes. New effects are transient; previously implemented procedural terrain edits persist as before.
-
-## Verification and limits
-
-39 mod/director/adapter tests include new rules for bounded treeline returns, Null's non-advancing behavior, movement/turn reaction, exactly four repetition cues without a figure, actual tree-required placement, and recorded-route sound origins. Test fixtures are authored stand-ins, not Minecraft source. Java 8 and Windows packaging checks are retained. Automated and bytecode checks do not prove original-game audiovisual quality, watcher visibility, resource availability or graphics-driver stability. If an AMD timeout returns, stop retrying and export the latest session report.
+Automated and Windows packaging tests are not proof of real gameplay or graphics-driver stability. If a driver reset occurs, stop retrying and save the session report.

@@ -48,7 +48,7 @@ public final class AmbientHooksAnomalies {
         cancel(false);event=Event.values()[index];age=0;started=false;doorAge=1000;loops=0;lastLoopTick=-1000;effectAge=0;
         double r=Math.toRadians(AmbientHooks.Scene.facing+180);
         sourceX=AmbientHooks.Scene.px-Math.sin(r)*16;sourceY=AmbientHooks.Scene.py;sourceZ=AmbientHooks.Scene.pz+Math.cos(r)*16;
-        System.out.println("[Alpha anomaly] armed="+event+" preview="+preview);
+        AmbientHooksLog.debug("[Alpha runtime] armed="+event+" preview="+preview);
     }
     static boolean active(){return event!=null||shadow!=null||animalTicks>0||fogAge>=0||sunAge>=0||daylightAge>=0||delayedDrop!=null||horizon!=null||evacuationTicks>0;}
     static void cancel(boolean leavingWorld){
@@ -77,7 +77,7 @@ public final class AmbientHooksAnomalies {
         if(event!=null){
             age++;
             boolean done=run(moving);
-            if(done||age>1200){System.out.println("[Alpha anomaly] "+(started?"completed=":"skipped:no suitable context=")+event);event=null;restoreAudio();}
+            if(done||age>1200){AmbientHooksLog.debug("[Alpha runtime] "+(started?"completed=":"skipped:no suitable context=")+event);event=null;restoreAudio();}
         }
         previousMoving=moving;lastY=AmbientHooks.Scene.py;
         Object inv=inventory();if(inv!=null)lastSlot=integer(inv,"d");
@@ -331,9 +331,9 @@ public final class AmbientHooksAnomalies {
         Object w=AmbientHooks.Scene.world;Class<?>[] types={int.class,int.class,int.class,int.class};
         for(int i=0;i<plan.length;i++){
             int[] p=plan[i];if(old[i]==p[3])continue;
-            boolean written=false;try{written=(Boolean)call(w,"d",types,p[0],p[1],p[2],p[3]);}catch(ReflectiveOperationException failure){System.err.println("[Alpha anomaly] edit rejected: "+failure.getClass().getSimpleName());}
+            boolean written=false;try{written=(Boolean)call(w,"d",types,p[0],p[1],p[2],p[3]);}catch(ReflectiveOperationException failure){System.err.println("[Alpha runtime] edit rejected: "+failure.getClass().getSimpleName());}
             if(!written){
-                for(int j=i;j>=0;j--){int[] q=plan[j];if(old[j]==q[3])continue;try{call(w,"d",types,q[0],q[1],q[2],old[j]);call(w,"b",types,q[0],q[1],q[2],metadata[j]);}catch(ReflectiveOperationException failure){System.err.println("[Alpha anomaly] edit rollback incomplete: "+failure.getClass().getSimpleName());}}
+                for(int j=i;j>=0;j--){int[] q=plan[j];if(old[j]==q[3])continue;try{call(w,"d",types,q[0],q[1],q[2],old[j]);call(w,"b",types,q[0],q[1],q[2],metadata[j]);}catch(ReflectiveOperationException failure){System.err.println("[Alpha runtime] edit rollback incomplete: "+failure.getClass().getSimpleName());}}
                 return false;
             }
         }return true;

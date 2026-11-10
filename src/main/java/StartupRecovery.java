@@ -18,7 +18,7 @@ final class StartupRecovery {
                 JPanel panel=new JPanel(new BorderLayout(0,10));
                 panel.add(new JLabel("<html><b>Possible cause: "+report.finding().category()+"</b><br>Local log scan only—not proof that this is the current launch's failure. Nothing is uploaded.</html>"),BorderLayout.NORTH);
                 panel.add(new JScrollPane(text),BorderLayout.CENTER);
-                panel.add(new JLabel("Clean test installation = vanilla Alpha, no agents or horror effects. Existing profiles/worlds stay unchanged."),BorderLayout.SOUTH);
+                panel.add(new JLabel("Clean test installation = vanilla Alpha, no additional runtime adjustments. Existing profiles/worlds stay unchanged."),BorderLayout.SOUTH);
                 choice[0]=JOptionPane.showOptionDialog(null,panel,"Alpha startup recovery",JOptionPane.DEFAULT_OPTION,JOptionPane.INFORMATION_MESSAGE,null,
                         new String[]{"Create clean test installation","Save diagnostic report","Refresh","Close"},"Create clean test installation");
             });
@@ -31,7 +31,7 @@ final class StartupRecovery {
                 continue;
             }
             int[] consent={JOptionPane.CANCEL_OPTION};
-            SwingUtilities.invokeAndWait(()->consent[0]=JOptionPane.showConfirmDialog(null,"Close Minecraft Launcher first.\n\nCreate/reset only the dedicated Alpha Found - Recovery profile?\nIt uses Java 8 on Windows, no agents, and a separate game directory.\nIt is NOT the horror mod. Existing installations and worlds are preserved.\nExisting launcher profile files are backed up before writing.","Create clean startup baseline",JOptionPane.OK_CANCEL_OPTION));
+            SwingUtilities.invokeAndWait(()->consent[0]=JOptionPane.showConfirmDialog(null,"Close Minecraft Launcher first.\n\nCreate/reset only the dedicated Alpha Found - Recovery profile?\nIt uses Java 8 on Windows, no agents, and a separate game directory.\nIt is a separate diagnostic installation. Existing installations and worlds are preserved.\nExisting launcher profile files are backed up before writing.","Create clean startup baseline",JOptionPane.OK_CANCEL_OPTION));
             if(consent[0]!=JOptionPane.OK_OPTION)continue;
             if(!Files.isRegularFile(jar)){jar=chooseJar(jar.getParent());if(jar==null)return;}
             try{
