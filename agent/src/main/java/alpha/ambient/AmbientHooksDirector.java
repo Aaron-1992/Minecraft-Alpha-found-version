@@ -70,7 +70,7 @@ public final class AmbientHooksDirector {
                 break;
             case AFTERMATH:
                 a.remove=true;
-                if(phaseAge==25)a.cue=true;
+                if(phaseAge==25&&mode!=Mode.REPEATER)a.cue=true;
                 if(phaseAge>65){
                     if((returns==0&&(mode==Mode.STALK||mode==Mode.TURN_AROUND))||(mode==Mode.TREE_LINE&&returns<2)){
                         returns++;a.spawn=true;a.relocate=true;a.remove=false;set(Phase.OBSERVE);

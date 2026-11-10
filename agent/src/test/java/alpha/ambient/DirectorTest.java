@@ -55,7 +55,7 @@ public class DirectorTest {
     }
     @Test public void repeaterHasFourCuesAndNoFigure(){
         AmbientHooksDirector d=new AmbientHooksDirector();d.begin(AmbientHooksDirector.Mode.REPEATER,true);AmbientHooksDirector.Input in=input();int cues=0;
-        for(int i=0;i<165;i++){AmbientHooksDirector.Action a=d.tick(in);if(a.cue)cues++;assertFalse(a.spawn);}
+        for(int i=0;i<600;i++){AmbientHooksDirector.Action a=d.tick(in);if(a.cue)cues++;assertFalse(a.spawn);}
         assertEquals(4,cues);
     }
     @Test public void resetAbortsWithoutExtraActions(){AmbientHooksDirector d=new AmbientHooksDirector();d.begin(AmbientHooksDirector.Mode.TURN_AROUND,true);d.reset();AmbientHooksDirector.Action a=d.tick(input());assertFalse(d.active());assertFalse(a.spawn||a.cue||a.step);}
