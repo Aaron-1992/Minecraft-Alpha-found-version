@@ -135,8 +135,8 @@ public final class OfflinePatcher {
         for(String[] f:new String[][]{{"e","Lcj;"},{"g","Lbe;"}}){
             m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,f[0],f[1]);m.visitJumpInsn(Opcodes.IFNULL,inactive);
         }
-        m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"p","Lbd;");m.visitJumpInsn(Opcodes.IFNONNULL,inactive);
-        m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"m","Z");m.visitJumpInsn(Opcodes.IFNE,inactive);
+        m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"p","Lbd;");m.visitJumpInsn(Opcodes.IFNONNULL,end);
+        m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"m","Z");m.visitJumpInsn(Opcodes.IFNE,end);
         m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"e","Lcj;");
         m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"g","Lbe;");
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","scene","(Ljava/lang/Object;Ljava/lang/Object;)V",false);
