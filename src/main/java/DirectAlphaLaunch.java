@@ -17,7 +17,7 @@ final class DirectAlphaLaunch {
         }
         OriginalAlphaInstallation.Client client=OriginalAlphaInstallation.inspect(jar);
         int[] consent={-1};SwingUtilities.invokeAndWait(()->consent[0]=JOptionPane.showConfirmDialog(null,
-                "Prepare and play patched Alpha directly?\n\nSingle-player only: this tool does not sign in or read account tokens.\nUses your locally installed client/libraries and bundled Java 8 on Windows.\nOriginal JAR, launcher profiles and Recovery worlds remain untouched.\nA separate patched-engine folder holds this mod's worlds.\n\nOriginal sound recordings are copied when locally available; nothing is downloaded.\nTerrain changes persist in saved worlds. Use a new world for testing.",
+                "Experimental build: an AMD driver timeout was reported in the previous release.\nFog modifications are disabled; this is NOT a verified driver fix.\nCancel if your graphics driver is still unstable. Do not repeatedly retry after a reset.\n\nSingle-player only: this tool does not sign in or read account tokens.\nUses your locally installed client/libraries and bundled Java 8 on Windows.\nOriginal JAR, launcher profiles and Recovery worlds remain untouched.\nA separate patched-engine folder holds this mod's worlds.\n\nOriginal sound recordings are copied when locally available; nothing is downloaded.\nTerrain changes persist in saved worlds. Use a new world for testing.",
                 "Alpha - Play directly",JOptionPane.OK_CANCEL_OPTION));if(consent[0]!=JOptionPane.OK_OPTION)return;
         Path game=data.resolve("patched-engine").resolve(client.version());Files.createDirectories(game);
         Path runtime=LegacyRuntime.installIfAvailable(game);

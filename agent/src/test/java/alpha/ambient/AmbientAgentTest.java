@@ -23,7 +23,7 @@ public class AmbientAgentTest {
     @Test public void leavesOnlyNoReplacementSkin(){
         byte[] b=terrain();for(int y=61;y<=65;y++)b[index(8,y,8)]=17;
         for(int x=6;x<=10;x++)for(int z=6;z<=10;z++)b[index(x,66,z)]=18;
-        byte[] before=b.clone();assertTrue(AmbientHooks.apply(b,10,10,1));
+        byte[] before=b.clone();assertFalse(AmbientHooks.apply(b,10,10,1));assertArrayEquals(before,b);
         for(int i=0;i<b.length;i++)if(b[i]!=before[i]){assertEquals(18,before[i]);assertEquals(0,b[i]);}
         assertEquals(17,b[index(8,65,8)]);
     }
@@ -38,8 +38,18 @@ public class AmbientAgentTest {
         for(int seconds=1;seconds<3600;seconds++){
             float value=AmbientHooks.fogAt(0x0B64,100,seconds);assertTrue(value>=96&&value<=100);assertTrue(Math.abs(value-previous)<.03);previous=value;
             assertEquals(100,AmbientHooks.fogAt(0x0B62,100,seconds),0);
-            assertTrue(AmbientHooks.fogAt(0x0B63,20,seconds)<value);
+            assertEquals(20,AmbientHooks.fogAt(0x0B63,20,seconds),0);
         }
+    }
+    @Test public void soundScheduleIsSparseAndInactiveTicksAreSilent(){
+        for(int i=0;i<20000;i++)assertNull(AmbientHooks.nextSound(false));
+        int events=0;
+        for(int i=0;i<20*60*60;i++){
+            String sound=AmbientHooks.nextSound(true);
+            if(sound!=null){events++;assertTrue(java.util.Arrays.asList("step.grass","step.stone","step.gravel").contains(sound));}
+        }
+        assertTrue(events>=6&&events<=15);
+        assertEquals(6,Math.hypot(AmbientHooks.soundX(80),AmbientHooks.soundZ(80)),.0001);
     }
     @Test public void nonSelectedAndSpawnChunksStayUnchanged(){
         byte[] b=terrain(),before=b.clone();Object chunk=new Object();AmbientHooks.register(chunk,b,0,0);AmbientHooks.ready(chunk);assertArrayEquals(before,b);

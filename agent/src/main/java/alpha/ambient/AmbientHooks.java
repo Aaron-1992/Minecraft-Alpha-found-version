@@ -6,22 +6,26 @@ import java.util.WeakHashMap;
 /** Java 8 hooks. No UI, audio, textures, entities, network, reflection or file access. */
 public final class AmbientHooks {
     private static final Map<Object,Pending> pending=new WeakHashMap<Object,Pending>();
-    private static final long began=System.nanoTime();
+    private static final java.util.Random atmosphere=new java.util.Random();
+    private static int quietTicks=20*(240+atmosphere.nextInt(301));
+    /** Called on the game tick, not a render thread or timer. Menus cannot trigger audio. */
+    public static synchronized String nextSound(boolean active){
+        if(!active)return null;
+        if(--quietTicks>0)return null;
+        quietTicks=20*(240+atmosphere.nextInt(301));
+        return new String[]{"step.grass","step.stone","step.gravel"}[atmosphere.nextInt(3)];
+    }
+    public static double soundX(float yaw){return -Math.sin(Math.toRadians(yaw+135))*6;}
+    public static double soundZ(float yaw){return Math.cos(Math.toRadians(yaw+135))*6;}
     private static final class Pending {
         final byte[] blocks;final int x,z,kind;int attempts;
         Pending(byte[] blocks,int x,int z,int kind){this.blocks=blocks;this.x=x;this.z=z;this.kind=kind;}
     }
     private AmbientHooks(){}
     public static float fog(int parameter,float original){
-        return fogAt(parameter,original,(System.nanoTime()-began)/1e9);
+        return original; // Graphics effects disabled following a reported AMD driver timeout.
     }
-    public static float fogAt(int parameter,float original,double seconds){
-        if((parameter!=0x0B63&&parameter!=0x0B64)||original<=0||Float.isNaN(original)||Float.isInfinite(original))return original;
-        // Both endpoints share the same slow factor, preserving their order.
-        double envelope=Math.min(1,Math.max(0,seconds/180));
-        double drift=.018+.012*Math.sin(seconds*.009)+.006*Math.sin(seconds*.0031);
-        return (float)(original*(1-envelope*drift));
-    }
+    public static float fogAt(int parameter,float original,double seconds){return original;}
     public static synchronized void register(Object chunk,byte[] blocks,int x,int z){
         if(blocks==null||blocks.length!=32768||Math.max(Math.abs((long)x),Math.abs((long)z))<4)return;
         long hash=mix(x,z);
@@ -54,7 +58,7 @@ public final class AmbientHooks {
         // Refuse the whole chunk near common player construction, storage or lighting.
         for(byte value:blocks)if(!natural(value&255))return false;
         if(kind==0)return corridor(blocks);
-        if(kind==1)return bareCanopy(blocks);
+        if(kind==1)return false; // Never strip leaves from existing or newly loaded trees.
         if(kind==2)return sandSteps(blocks);
         return seam(blocks);
     }
@@ -75,15 +79,6 @@ public final class AmbientHooks {
         }
         for(int x=2;x<=13;x++)for(int z=7;z<=8;z++)for(int dy=0;dy<2;dy++)set(b,x,y+dy,z,0);
         return true;
-    }
-    private static boolean bareCanopy(byte[] b){
-        for(int x=3;x<=12;x++)for(int z=3;z<=12;z++)for(int y=110;y>=16;y--){
-            if(get(b,x,y,z)!=17||get(b,x,y+1,z)==17)continue;
-            boolean changed=false;
-            for(int dx=-2;dx<=2;dx++)for(int dz=-2;dz<=2;dz++)for(int dy=-2;dy<=2;dy++)
-                if(get(b,x+dx,y+dy,z+dz)==18){set(b,x+dx,y+dy,z+dz,0);changed=true;}
-            if(changed)return true;
-        }return false;
     }
     private static boolean sandSteps(byte[] b){
         int y=ground(b,8,8);if(y<6||y>119)return false;

@@ -68,19 +68,46 @@ public final class OfflinePatcher {
                     mv.visitMethodInsn(Opcodes.INVOKESPECIAL,"java/io/File","<init>","(Ljava/lang/String;)V",false);
                     mv.visitInsn(Opcodes.ARETURN);mv.visitMaxs(0,0);mv.visitEnd();return null;
                 }
-                return new MethodVisitor(Opcodes.ASM9,mv){
-                    public void visitMethodInsn(int opcode,String owner,String method,String descriptor,boolean itf){
-                        if(opcode==Opcodes.INVOKESTATIC&&owner.equals("org/lwjgl/opengl/GL11")&&method.equals("glFogf")&&descriptor.equals("(IF)V")){
-                            super.visitInsn(Opcodes.DUP2);
-                            super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","fog","(IF)F",false);
-                            super.visitInsn(Opcodes.SWAP);super.visitInsn(Opcodes.POP);
-                            super.visitMethodInsn(opcode,owner,method,descriptor,itf);return;
+                if(name.equals("net/minecraft/client/Minecraft")&&method.equals("i")&&desc.equals("()V")){
+                    return new MethodVisitor(Opcodes.ASM9,mv){
+                        public void visitInsn(int opcode){
+                            if(opcode==Opcodes.RETURN){super.visitVarInsn(Opcodes.ALOAD,0);super.visitMethodInsn(Opcodes.INVOKESPECIAL,name,"alpha$ambientTick","()V",false);}
+                            super.visitInsn(opcode);
                         }
-                        super.visitMethodInsn(opcode,owner,method,descriptor,itf);
-                    }
-                };
+                    };
+                }
+                return mv;
+
+            }
+            public void visitEnd(){
+                if(name.equals("net/minecraft/client/Minecraft"))addSoundTick(writer);
+                super.visitEnd();
             }
         },0);return writer.toByteArray();
+    }
+    private static void addSoundTick(ClassWriter writer){
+        String game="net/minecraft/client/Minecraft";
+        MethodVisitor m=writer.visitMethod(Opcodes.ACC_PRIVATE,"alpha$ambientTick","()V",null,null);
+        m.visitCode();Label inactive=new Label(),end=new Label();
+        for(String[] f:new String[][]{{"e","Lcj;"},{"g","Lbe;"}}){
+            m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,f[0],f[1]);m.visitJumpInsn(Opcodes.IFNULL,inactive);
+        }
+        m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"p","Lbd;");m.visitJumpInsn(Opcodes.IFNONNULL,inactive);
+        m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"m","Z");m.visitJumpInsn(Opcodes.IFNE,inactive);
+        m.visitInsn(Opcodes.ICONST_1);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","nextSound","(Z)Ljava/lang/String;",false);m.visitVarInsn(Opcodes.ASTORE,1);
+        m.visitVarInsn(Opcodes.ALOAD,1);m.visitJumpInsn(Opcodes.IFNULL,end);
+        m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"e","Lcj;");
+        for(String field:new String[]{"ah","ai","aj"}){
+            m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"g","Lbe;");m.visitFieldInsn(Opcodes.GETFIELD,"be",field,"D");
+            if(!field.equals("ai")){
+                m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"g","Lbe;");m.visitFieldInsn(Opcodes.GETFIELD,"be","an","F");
+                m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks",field.equals("ah")?"soundX":"soundZ","(F)D",false);m.visitInsn(Opcodes.DADD);
+            }
+        }
+        m.visitVarInsn(Opcodes.ALOAD,1);m.visitLdcInsn(0.16f);m.visitLdcInsn(0.95f);
+        m.visitMethodInsn(Opcodes.INVOKEVIRTUAL,"cj","a","(DDDLjava/lang/String;FF)V",false);m.visitJumpInsn(Opcodes.GOTO,end);
+        m.visitLabel(inactive);m.visitInsn(Opcodes.ICONST_0);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","nextSound","(Z)Ljava/lang/String;",false);m.visitInsn(Opcodes.POP);
+        m.visitLabel(end);m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();
     }
     static String hex(byte[] bytes){StringBuilder s=new StringBuilder();for(byte b:bytes)s.append(String.format("%02x",b&255));return s.toString();}
 }
