@@ -5,14 +5,14 @@ import java.util.*;
 
 /** One direct-game process, one log directory. Never scans legacy installations. */
 final class LaunchSession {
-    static final String VERSION="0.6.3";
+    static final String VERSION="0.7.0";
     final Path directory;
     private final Properties status=new Properties();
     private LaunchSession(Path directory){this.directory=directory;}
     static LaunchSession begin(Path data)throws IOException{
         Path sessions=data.resolve("sessions");Files.createDirectories(sessions);
         LaunchSession session=new LaunchSession(Files.createTempDirectory(sessions,"launch-"));
-        session.status.setProperty("build",VERSION);session.status.setProperty("started",Instant.now().toString());session.status.setProperty("state","STARTING");session.store();
+        session.status.setProperty("features","sounds=on;fog=on;smoke=on;leafStripping=off;fpsCap=60;preview=F6");session.status.setProperty("build",VERSION);session.status.setProperty("started",Instant.now().toString());session.status.setProperty("state","STARTING");session.store();
         Properties latest=new Properties();latest.setProperty("session",session.directory.getFileName().toString());
         writeProperties(data.resolve("latest-session.properties"),latest);
         return session;
@@ -34,7 +34,7 @@ final class LaunchSession {
     static String report(Path data)throws IOException{
         Path session=latest(data);Properties p=new Properties();try(InputStream in=Files.newInputStream(session.resolve("session.properties"))){p.load(in);}
         StringBuilder report=new StringBuilder("Alpha Desktop "+VERSION+" - latest direct-play session ONLY\n");
-        for(String key:List.of("build","started","state","exitCode","finished"))report.append(key).append(": ").append(p.getProperty(key,"not recorded")).append('\n');
+        for(String key:List.of("build","features","started","state","exitCode","finished"))report.append(key).append(": ").append(p.getProperty(key,"not recorded")).append('\n');
         report.append("No legacy launcher, compatibility or recovery logs are included.\nAn unfinished session can indicate a still-running game or an interrupted launcher.\nA driver reset may leave no Java error; UNKNOWN is not a clean bill of health.\nNothing is uploaded. Redaction is best-effort; review before sharing.\n\n");
         try(var files=Files.list(session)){
             for(Path file:files.sorted().toList()){

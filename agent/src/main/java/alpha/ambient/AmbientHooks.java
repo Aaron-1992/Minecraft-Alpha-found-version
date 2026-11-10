@@ -8,24 +8,52 @@ public final class AmbientHooks {
     private static final Map<Object,Pending> pending=new WeakHashMap<Object,Pending>();
     private static final java.util.Random atmosphere=new java.util.Random();
     private static int quietTicks=20*(240+atmosphere.nextInt(301));
-    /** Called on the game tick, not a render thread or timer. Menus cannot trigger audio. */
-    public static synchronized String nextSound(boolean active){
-        if(!active||!Boolean.parseBoolean(System.getProperty("alpha.scheduledSounds","false")))return null;
-        if(--quietTicks>0)return null;
-        quietTicks=20*(240+atmosphere.nextInt(301));
-        return new String[]{"step.grass","step.stone","step.gravel"}[atmosphere.nextInt(3)];
+    private static long activeTicks;
+    private static boolean keyHeld,forceEvent,particle;
+    private static int events;
+    private static long previewFogUntil;
+    public static synchronized void previewKey(boolean down){
+        if(down&&!keyHeld){forceEvent=true;previewFogUntil=System.nanoTime()+6000000000L;}
+        keyHeld=down;
     }
+    static int intervalSeconds(long ticks){
+        if(ticks>=20L*60*40)return 45+atmosphere.nextInt(76);
+        if(ticks>=20L*60*20)return 120+atmosphere.nextInt(121);
+        return 240+atmosphere.nextInt(301);
+    }
+    /** Active game ticks only; F6 skips the wait, not terrain placement checks. */
+    public static synchronized String nextSound(boolean active){
+        if(!active){keyHeld=false;return null;}
+        activeTicks++;
+        if(!Boolean.parseBoolean(System.getProperty("alpha.scheduledSounds","true")))return null;
+        if(!forceEvent&&--quietTicks>0)return null;
+        boolean preview=forceEvent;forceEvent=false;quietTicks=20*intervalSeconds(activeTicks);
+        particle=(++events%2==0)||preview;
+        String[] sounds={"step.grass","step.stone","step.gravel","random.pop","step.wood"};
+        String sound=sounds[atmosphere.nextInt(sounds.length)];
+        System.out.println("[Alpha ambience] tick="+activeTicks+" event="+events+" preview="+preview+" soundRequest="+sound+" particleRequest="+particle);
+        return sound;
+    }
+    public static synchronized boolean takeParticle(){boolean result=particle;particle=false;return result;}
     public static double soundX(float yaw){return -Math.sin(Math.toRadians(yaw+135))*6;}
     public static double soundZ(float yaw){return Math.cos(Math.toRadians(yaw+135))*6;}
+    public static double visualX(float yaw){return -Math.sin(Math.toRadians(yaw+32))*9;}
+    public static double visualZ(float yaw){return Math.cos(Math.toRadians(yaw+32))*9;}
     private static final class Pending {
         final byte[] blocks;final int x,z,kind;int attempts;
         Pending(byte[] blocks,int x,int z,int kind){this.blocks=blocks;this.x=x;this.z=z;this.kind=kind;}
     }
     private AmbientHooks(){}
     public static float fog(int parameter,float original){
-        return original; // Graphics effects disabled following a reported AMD driver timeout.
+        if(System.nanoTime()<previewFogUntil&&(parameter==0x0B63||parameter==0x0B64))return original*.88f;
+        return fogAt(parameter,original,activeTicks/20.0);
     }
-    public static float fogAt(int parameter,float original,double seconds){return original;}
+    public static float fogAt(int parameter,float original,double seconds){
+        if((parameter!=0x0B63&&parameter!=0x0B64)||original<=0||Float.isNaN(original)||Float.isInfinite(original))return original;
+        double envelope=Math.min(1,Math.max(0,seconds/180));
+        double drift=.018+.012*Math.sin(seconds*.009)+.006*Math.sin(seconds*.0031);
+        return (float)(original*(1-envelope*drift));
+    }
     public static synchronized void register(Object chunk,byte[] blocks,int x,int z){
         if(blocks==null||blocks.length!=32768||Math.max(Math.abs((long)x),Math.abs((long)z))<4)return;
         long hash=mix(x,z);

@@ -34,7 +34,7 @@ public class OfflinePatcherTest {
         MethodVisitor m=w.visitMethod(Opcodes.ACC_PUBLIC|Opcodes.ACC_STATIC,"render","()V",null,null);m.visitCode();m.visitIntInsn(Opcodes.SIPUSH,2915);m.visitInsn(Opcodes.FCONST_1);
         m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/opengl/GL11","glFogf","(IF)V",false);m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();w.visitEnd();
         List<String> calls=calls(OfflinePatcher.patchClass("FogFixture",w.toByteArray(),"fr"));
-        assertEquals(Collections.singletonList("org/lwjgl/opengl/GL11.glFogf(IF)V"),calls);
+        assertEquals(Arrays.asList("alpha/ambient/AmbientHooks.fog(IF)F","org/lwjgl/opengl/GL11.glFogf(IF)V"),calls);
     }
     @Test public void frameCapPrecedesDisplayUpdate(){
         String game="net/minecraft/client/Minecraft";

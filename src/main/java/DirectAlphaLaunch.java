@@ -17,7 +17,7 @@ final class DirectAlphaLaunch {
         }
         OriginalAlphaInstallation.Client client=OriginalAlphaInstallation.inspect(jar);
         int[] consent={-1};SwingUtilities.invokeAndWait(()->consent[0]=JOptionPane.showConfirmDialog(null,
-                "Experimental build: an AMD driver timeout was reported in the previous release.\nFog modifications are disabled; this is NOT a verified driver fix.\nCancel if your graphics driver is still unstable. Do not repeatedly retry after a reset.\n\nSingle-player only: this tool does not sign in or read account tokens.\nUses your locally installed client/libraries and bundled Java 8 on Windows.\nOriginal JAR, launcher profiles and Recovery worlds remain untouched.\nA separate patched-engine folder holds this mod's worlds.\n\nOriginal sound recordings are copied when locally available; nothing is downloaded.\nTerrain changes persist in saved worlds. Use a new world for testing.",
+                "Experimental build: earlier builds had AMD driver timeouts; the latest was user-reported stable.\n60 FPS cap retained. Sounds/fog/smoke enabled; F6 previews ambience.\nCancel if your graphics driver is still unstable. Do not repeatedly retry after a reset.\n\nSingle-player only: this tool does not sign in or read account tokens.\nUses your locally installed client/libraries and bundled Java 8 on Windows.\nOriginal JAR, launcher profiles and Recovery worlds remain untouched.\nA separate patched-engine folder holds this mod's worlds.\n\nOriginal sound recordings are copied when locally available; nothing is downloaded.\nTerrain changes persist in saved worlds. Use a new world for testing.",
                 "Alpha - Play directly",JOptionPane.OK_CANCEL_OPTION));if(consent[0]!=JOptionPane.OK_OPTION)return;
         Path game=data.resolve("patched-engine").resolve(client.version());Files.createDirectories(game);
         Path runtime=LegacyRuntime.installIfAvailable(game);
@@ -74,7 +74,7 @@ final class DirectAlphaLaunch {
     }
     static List<String> command(Path java,Path client,List<Path> libraries,Path game){
         List<String> cp=new ArrayList<>();cp.add(client.toAbsolutePath().toString());for(Path path:libraries)cp.add(path.toAbsolutePath().toString());
-        return List.of(java.toString(),"-Xmx1G","-Dalpha.scheduledSounds=false","-Djava.util.Arrays.useLegacyMergeSort=true","-Dalpha.gameDir="+game.toAbsolutePath(),"-Djava.library.path="+game.resolve("natives").toAbsolutePath(),
+        return List.of(java.toString(),"-Xmx1G","-Dalpha.scheduledSounds=true","-Djava.util.Arrays.useLegacyMergeSort=true","-Dalpha.gameDir="+game.toAbsolutePath(),"-Djava.library.path="+game.resolve("natives").toAbsolutePath(),
                 "-Dorg.lwjgl.librarypath="+game.resolve("natives").toAbsolutePath(),"-cp",String.join(File.pathSeparator,cp),"net.minecraft.client.Minecraft","Player","-");
     }
     static List<Path> resolveLibraries(Path minecraft,Map<String,Object> metadata,String os,Path natives)throws IOException{

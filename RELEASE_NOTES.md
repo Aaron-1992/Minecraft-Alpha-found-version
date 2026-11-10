@@ -1,12 +1,14 @@
-# Alpha Desktop 0.6.3 — one launcher, current-session reports
+# Alpha Desktop 0.7.0 — restored atmosphere, escalation and F6 preview
 
-- Replaced the entry point with **Play latest / Save latest session report / Close**. No old compatibility, official-launcher setup, Recovery-profile creation or custom-sandbox play modes are exposed. Existing installations/worlds are left alone.
-- Fixed misleading diagnostics: removed the hard-coded 0.5.2 heading from the legacy scanner and replaced the public report path with newest-session-only exports. Every game process has its own log, build/start/end/state/exit metadata and native JVM error-file destination. Old launcher/Recovery logs are not mixed in or used as fallback.
-- Report exports bounded recent output even if the driver reset produced no Java exception. Best-effort redaction; review before sharing. Nothing is uploaded.
-- Added a 60 FPS limiter before Minecraft display updates. Disabled the additional scheduled sound events to remove that variable during investigation. Normal original game sounds and the local sound registration fix remain. No new visual effects; leaf stripping and fog changes remain disabled.
+The user reports the capped 0.6.3 build no longer crashes. The 60 FPS cap, latest-session reporting and Java 8 legacy sort compatibility remain. This is not proof that the earlier AMD-driver timeout is fixed for every configuration.
 
-**Repeated AMD driver timeouts remain unresolved.** This is not a verified driver fix. Do not repeatedly retry after a reset. No Windows registry, driver or timeout settings are altered. No claim is made that the new audio caused the timeout or that limiting FPS resolves it.
+- Restored extra original sounds and subtle fog drift. Leaf stripping stays removed, as requested.
+- Added original wood footsteps and quiet pop alongside grass/stone/gravel. Normal volume/mute applies; missing original recordings cannot play. No generated audio or loud stingers.
+- Added brief clusters of three original smoke particles near the edge of view on every second scheduled event. No custom assets, actual figure, stalking AI, flashing overlays, fake system errors or effects outside the game.
+- Escalating event frequency during active gameplay: 4–9 minutes initially, 2–4 minutes after 20 minutes, 45–120 seconds after 40 minutes. Frequency is bounded; volume does not ramp up. Menus/paused ticks do not advance it. Timing resets on process restart.
+- **F6** skips the ambience wait: one original sound request, smoke cue and a six-second stronger fog preview. Release before pressing again. Some keyboards use Fn+F6. No chat messages. F6 does not teleport to terrain structures or force unsafe terrain edits; those remain procedural.
+- Each event request is logged with active tick, event number, sound name and preview status. Requests are not proof that a missing recording played or that a particle was visible. Session metadata now records enabled features.
 
-Requires the inspected installed original Alpha client, matching JSON and local libraries/natives; full Windows package bundles Java 8. Original client and launcher profiles are not modified. Local single-player only. No proprietary client/code/media is redistributed.
+Select **Play latest**. No extra launcher modes. Original JAR, old worlds/profiles and Recovery installation are untouched. Modded terrain changes persist in saves. No Minecraft client, patched game binary, proprietary source or media is redistributed.
 
-Regression tests cover latest-session isolation, exit metadata, missing new session without stale fallback, explicit extra-audio disable flag and frame-cap patch ordering, alongside existing suites. Packaged checks are not original-client gameplay or AMD-driver verification.
+Restoring several effects in one build is not a controlled isolation test. If a driver reset returns, stop retrying and export the latest session report. No claim is made that recurrence uniquely identifies a particular mod effect. Automated tests/bytecode and Windows packaging checks are not gameplay or GPU verification.

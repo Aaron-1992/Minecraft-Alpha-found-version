@@ -1,4 +1,4 @@
-# Alpha Desktop 0.6.3
+# Alpha Desktop 0.7.0
 
 Native launcher for a locally patched copy of the user's installed Minecraft Alpha a1.0.16. No browser, generated assets, redistributed Minecraft client or replacement login system.
 
@@ -14,19 +14,25 @@ No official-launcher setup menu, Recovery-profile creation menu, old compatibili
 
 Requires your installed `versions/a1.0.16/a1.0.16.jar`, matching JSON and previously installed libraries/natives. No automatic dependency downloads. Accepts only inspected client SHA-256 `fd14110691b14ea51f9320a949e2b3c1855e38af2668bf4e743c19b08de00234`. Your original JAR is never overwritten. Local single-player only; no account/token reading or authenticated multiplayer.
 
-## Driver-timeout status — unresolved
+## Ambience and F6 preview
 
-The user reported repeated AMD driver timeouts, including with fog disabled. **This release is not a confirmed driver fix.** It adds a 60 FPS limiter using LWJGL's `Display.sync(60)` before Minecraft's display updates to avoid unbounded frame submission. Scheduled extra sound events are disabled to remove that variable while investigating the reported roughly seven-minute failure. Original ordinary gameplay audio and local sound registration fix remain.
+User reports no more crashes with 0.6.3. The 60 FPS cap, Java 8 sorting compatibility and latest-session logging are retained. Sounds and subtle fog are restored; leaf stripping remains removed.
 
-No Windows registry, driver or timeout settings are changed. Do not repeatedly relaunch if the driver resets. No new visual effects are added. Frame limiting and disabling optional audio events are mitigations, not proof of the root cause or GPU compatibility.
+- **F6** in a world skips the ambience wait: requests one original sound, three original smoke particles near the edge of view, and a six-second fog preview. Release and press again for another event; holding the key does not flood events. Some keyboards require Fn+F6.
+- F6 is an ambience preview, **not** a teleport/terrain showcase. It does not guarantee a sound exists locally or a particle is visible through terrain. Normal audio volume/mute still applies. Event requests are printed in the latest game log, not in chat.
+- More original cues: grass/stone/gravel/wood footsteps and the original quiet pop. No generated recordings or loud stingers. Missing recordings cannot be played.
+- Every second naturally scheduled sound event also requests three ordinary original smoke particles about nine blocks away near the view edge. There is no actual figure, stalking entity or new texture.
+- Active-game escalation: initial intervals 4–9 minutes, 2–4 minutes after 20 minutes, and 45–120 seconds after 40 minutes. Frequency is capped; loudness does not increase. Menus and paused ticks do not advance it. Timing resets when the game process restarts.
+- Subtle fog drift resumes. F6's deliberate stronger fog preview is temporary. No flashing overlays or desktop effects.
+- Existing rare corridor/sand/gravel changes remain; terrain edits persist. Saved leaf loss is not repaired.
 
-The TimSort legacy sorting setting remains. Leaf stripping and fog changes remain disabled. Existing rare corridor/sand/gravel effects remain; terrain edits persist in saves. Saved missing leaves are not automatically repaired.
+**Restoring several effects at once is not a controlled cause-isolation test.** A recurrence would implicate the changed configuration, not prove which effect caused it. The earlier AMD timeout's root cause is still unknown; don't repeatedly relaunch after a driver reset. No Windows registry, driver or timeout settings are changed.
 
 ## Current-session diagnostics, not stale 0.5.2 logs
 
 The previous scanner had a hard-coded 0.5.2 heading and combined multiple installations. The new export does neither. Every game launch creates `%APPDATA%\AlphaDesktop\sessions\launch-...` containing:
 
-- `session.properties`: build, start/end timestamps, state and exit code;
+- `session.properties`: build, enabled features, start/end timestamps, state and exit code;
 - `game.log`: stdout/stderr for that game process only;
 - `hs_err_pid*.log`, if the JVM emits a native crash report;
 - `launch-error.txt`, if launching/waiting reports an error.

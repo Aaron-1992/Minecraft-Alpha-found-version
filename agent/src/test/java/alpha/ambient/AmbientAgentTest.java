@@ -38,7 +38,7 @@ public class AmbientAgentTest {
         for(int seconds=1;seconds<3600;seconds++){
             float value=AmbientHooks.fogAt(0x0B64,100,seconds);assertTrue(value>=96&&value<=100);assertTrue(Math.abs(value-previous)<.03);previous=value;
             assertEquals(100,AmbientHooks.fogAt(0x0B62,100,seconds),0);
-            assertEquals(20,AmbientHooks.fogAt(0x0B63,20,seconds),0);
+            assertTrue(AmbientHooks.fogAt(0x0B63,20,seconds)<value);
         }
     }
     @Test public void soundScheduleIsSparseAndInactiveTicksAreSilent(){
@@ -47,11 +47,25 @@ public class AmbientAgentTest {
         int events=0;
         for(int i=0;i<20*60*60;i++){
             String sound=AmbientHooks.nextSound(true);
-            if(sound!=null){events++;assertTrue(java.util.Arrays.asList("step.grass","step.stone","step.gravel").contains(sound));}
+            if(sound!=null){events++;assertTrue(java.util.Arrays.asList("step.grass","step.stone","step.gravel","random.pop","step.wood").contains(sound));}
         }
         System.clearProperty("alpha.scheduledSounds");
-        assertTrue(events>=6&&events<=15);
+        assertTrue(events>=10&&events<=55);
         assertEquals(6,Math.hypot(AmbientHooks.soundX(80),AmbientHooks.soundZ(80)),.0001);
+    }
+    @Test public void previewIsEdgeTriggeredAndEscalationIsBounded(){
+        System.setProperty("alpha.scheduledSounds","true");
+        try{
+            AmbientHooks.previewKey(false);AmbientHooks.previewKey(true);
+            assertNotNull(AmbientHooks.nextSound(true));assertTrue(AmbientHooks.takeParticle());
+            AmbientHooks.previewKey(true);assertNull(AmbientHooks.nextSound(true));
+            AmbientHooks.previewKey(false);AmbientHooks.previewKey(true);assertNotNull(AmbientHooks.nextSound(true));
+            AmbientHooks.previewKey(false);
+            for(int i=0;i<100;i++){
+                int early=AmbientHooks.intervalSeconds(0),late=AmbientHooks.intervalSeconds(20L*60*40);
+                assertTrue(early>=240&&early<=540);assertTrue(late>=45&&late<=120);
+            }
+        }finally{System.clearProperty("alpha.scheduledSounds");}
     }
     @Test public void nonSelectedAndSpawnChunksStayUnchanged(){
         byte[] b=terrain(),before=b.clone();Object chunk=new Object();AmbientHooks.register(chunk,b,0,0);AmbientHooks.ready(chunk);assertArrayEquals(before,b);

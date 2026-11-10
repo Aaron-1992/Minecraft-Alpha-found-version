@@ -76,15 +76,17 @@ public final class OfflinePatcher {
                         }
                     };
                 }
-                if(name.equals("net/minecraft/client/Minecraft"))return new MethodVisitor(Opcodes.ASM9,mv){
+                return new MethodVisitor(Opcodes.ASM9,mv){
                     public void visitMethodInsn(int opcode,String owner,String called,String descriptor,boolean itf){
-                        if(opcode==Opcodes.INVOKESTATIC&&owner.equals("org/lwjgl/opengl/Display")&&called.equals("update")&&descriptor.equals("()V")){
+                        if(opcode==Opcodes.INVOKESTATIC&&owner.equals("org/lwjgl/opengl/GL11")&&called.equals("glFogf")&&descriptor.equals("(IF)V")){
+                            super.visitInsn(Opcodes.DUP2);super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","fog","(IF)F",false);super.visitInsn(Opcodes.SWAP);super.visitInsn(Opcodes.POP);
+                        }
+                        if(name.equals("net/minecraft/client/Minecraft")&&opcode==Opcodes.INVOKESTATIC&&owner.equals("org/lwjgl/opengl/Display")&&called.equals("update")&&descriptor.equals("()V")){
                             super.visitIntInsn(Opcodes.BIPUSH,60);super.visitMethodInsn(Opcodes.INVOKESTATIC,owner,"sync","(I)V",false);
                         }
                         super.visitMethodInsn(opcode,owner,called,descriptor,itf);
                     }
                 };
-                return mv;
 
             }
             public void visitEnd(){
@@ -102,6 +104,8 @@ public final class OfflinePatcher {
         }
         m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"p","Lbd;");m.visitJumpInsn(Opcodes.IFNONNULL,inactive);
         m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"m","Z");m.visitJumpInsn(Opcodes.IFNE,inactive);
+        m.visitIntInsn(Opcodes.BIPUSH,64);m.visitMethodInsn(Opcodes.INVOKESTATIC,"org/lwjgl/input/Keyboard","isKeyDown","(I)Z",false);
+        m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","previewKey","(Z)V",false);
         m.visitInsn(Opcodes.ICONST_1);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","nextSound","(Z)Ljava/lang/String;",false);m.visitVarInsn(Opcodes.ASTORE,1);
         m.visitVarInsn(Opcodes.ALOAD,1);m.visitJumpInsn(Opcodes.IFNULL,end);
         m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"e","Lcj;");
@@ -113,7 +117,22 @@ public final class OfflinePatcher {
             }
         }
         m.visitVarInsn(Opcodes.ALOAD,1);m.visitLdcInsn(0.16f);m.visitLdcInsn(0.95f);
-        m.visitMethodInsn(Opcodes.INVOKEVIRTUAL,"cj","a","(DDDLjava/lang/String;FF)V",false);m.visitJumpInsn(Opcodes.GOTO,end);
+        m.visitMethodInsn(Opcodes.INVOKEVIRTUAL,"cj","a","(DDDLjava/lang/String;FF)V",false);
+        m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","takeParticle","()Z",false);m.visitJumpInsn(Opcodes.IFEQ,end);
+        // Original smoke particles on the edge of view; no custom texture or entity.
+        for(int puff=0;puff<3;puff++){
+            m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"e","Lcj;");m.visitLdcInsn("smoke");
+            for(String field:new String[]{"ah","ai","aj"}){
+                m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"g","Lbe;");m.visitFieldInsn(Opcodes.GETFIELD,"be",field,"D");
+                if(!field.equals("ai")){
+                    m.visitVarInsn(Opcodes.ALOAD,0);m.visitFieldInsn(Opcodes.GETFIELD,game,"g","Lbe;");m.visitFieldInsn(Opcodes.GETFIELD,"be","an","F");
+                    m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks",field.equals("ah")?"visualX":"visualZ","(F)D",false);m.visitInsn(Opcodes.DADD);
+                }else{m.visitLdcInsn(.5+puff*.3);m.visitInsn(Opcodes.DADD);}
+            }
+            m.visitInsn(Opcodes.DCONST_0);m.visitLdcInsn(.015);m.visitInsn(Opcodes.DCONST_0);
+            m.visitMethodInsn(Opcodes.INVOKEVIRTUAL,"cj","a","(Ljava/lang/String;DDDDDD)V",false);
+        }
+        m.visitJumpInsn(Opcodes.GOTO,end);
         m.visitLabel(inactive);m.visitInsn(Opcodes.ICONST_0);m.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooks","nextSound","(Z)Ljava/lang/String;",false);m.visitInsn(Opcodes.POP);
         m.visitLabel(end);m.visitInsn(Opcodes.RETURN);m.visitMaxs(0,0);m.visitEnd();
     }

@@ -30,7 +30,7 @@ public final class DirectLaunchTests {
             LaunchSession first=LaunchSession.begin(data);Files.writeString(first.directory.resolve("game.log"),"FIRST SESSION");first.finished(0);
             LaunchSession latest=LaunchSession.begin(data);Files.writeString(latest.directory.resolve("game.log"),"LATEST OUTPUT even without exception");latest.finished(-805306369);
             String report=LaunchSession.report(data);check(report.contains("LATEST OUTPUT"));check(report.contains("-805306369"));check(report.contains("state: EXITED"));check(!report.contains("FIRST SESSION")&&!report.contains("OLD 0.5.2"));
-            check(command.contains("-Dalpha.scheduledSounds=false"));
+            check(command.contains("-Dalpha.scheduledSounds=true"));
             System.out.println("PASS direct launch rules, local artifacts/checksums, native extraction, no-agent command and legacy sound import");
         }finally{try(var files=Files.walk(root)){for(Path p:files.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}
     }

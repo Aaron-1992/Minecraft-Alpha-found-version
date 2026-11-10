@@ -6,7 +6,7 @@ final class LauncherHome {
     static void open()throws Exception{
         while(true){
             int[] choice={2};SwingUtilities.invokeAndWait(()->choice[0]=JOptionPane.showOptionDialog(null,
-                    "Alpha Desktop "+LaunchSession.VERSION+"\n\nPlay the latest locally patched Alpha client directly.\nNo official launcher, old compatibility profiles or custom sandbox.\n\nAMD driver-timeout cause remains unresolved.\nThis build caps frames at 60 and disables scheduled sound events.\nDo not repeatedly retry if the driver resets again.",
+                    "Alpha Desktop "+LaunchSession.VERSION+"\n\nPlay the latest locally patched Alpha client directly.\nNo official launcher, old compatibility profiles or custom sandbox.\n\nAMD driver-timeout cause remains unresolved.\n60 FPS cap retained. Sounds, subtle fog and smoke cues enabled.\nF6 previews ambience immediately. Leaf stripping stays off.\nDo not repeatedly retry if the driver resets again.",
                     "Alpha Desktop",JOptionPane.DEFAULT_OPTION,JOptionPane.PLAIN_MESSAGE,null,
                     new String[]{"Play latest","Save latest session report","Close"},"Play latest"));
             if(choice[0]<0||choice[0]==2)return;

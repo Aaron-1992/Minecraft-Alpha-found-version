@@ -1,7 +1,7 @@
 @echo off
 cd /d "%~dp0"
-set "APP_JAR=alpha-desktop-0.6.3.jar"
-if not exist "%APP_JAR%" set "APP_JAR=target\alpha-desktop-0.6.3.jar"
+set "APP_JAR=alpha-desktop-0.7.0.jar"
+if not exist "%APP_JAR%" set "APP_JAR=target\alpha-desktop-0.7.0.jar"
 if not exist "%APP_JAR%" (
   echo Download and extract the desktop release, or run build.bat first.
   exit /b 1
