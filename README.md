@@ -1,4 +1,4 @@
-# Alpha Desktop 0.11.0
+# Alpha Desktop 0.12.0
 
 Native launcher for a locally patched copy of the user's installed Minecraft Alpha a1.0.16. No browser, generated assets, redistributed Minecraft client or replacement login system.
 
@@ -56,3 +56,15 @@ Game worlds/resources remain in `%APPDATA%\AlphaDesktop\patched-engine\a1.0.16`.
 No Minecraft source/assets/client are committed or distributed. Unit tests, exact-client patch/bytecode checks and Windows EXE smoke tests do not constitute gameplay, AMD-driver or sound playback verification. Legacy instrumentation tests are retained as regressions, not an alternate exposed play mode.
 
 Bundled Java 8 uses Temurin; upstream runtime sources/notices: https://github.com/adoptium/jdk8u and https://github.com/adoptium/temurin8-binaries. Runtime release metadata and notices accompany the Windows package. Third-party dependency distributions and available source archives accompany release packaging.
+
+## 0.12.0 — persistence and visibility foundations
+
+This is the first foundation batch for the requested 40+ anomaly design, **not a completed 40-event implementation**. The existing 23-event preview palette remains.
+
+- Persist `CorruptionLevel` (0–100), `AlphaActiveTicks`, and stable `AlphaLast_<event>` timestamps inside the vanilla `level.dat` Data compound. No separate save-file writer; vanilla retains its normal save/backup transaction.
+- Four active-play tiers: day 1–4, 5–10, 11–18, and 19 onward. Days mean 24,000 active ticks, not wall-clock dates. Pausing/menu time does not advance corruption. Existing worlds start counting from this update.
+- Natural events use tier-gated weighted selection. Each event has a 24,000-active-tick (20 minute) repeat lock that survives normal save/reload. Exhaustion produces silence. F6 intentionally bypasses eligibility without recording a natural occurrence. Cooldowns are per world; progression is monotonic.
+- Conservative visibility guard: protect an oversized view cone around the camera, checking model extremities. Spawn only outside it, defer removal while inside it. This deliberately protects through walls too; it is **not yet the actual renderer frustum**. F7 cancels cues immediately but a visible actor remains until safely removable. Menu/world exit cleans up actors in the no-longer-rendered world.
+- Replace sampled observation rays with bounded voxel traversal; unloaded reads remain forbidden. This is block-level traversal, not exact Alpha block-shape collision.
+- Disable legacy terrain mutations and smoke-particle pops pending a proper visibility-aware mutation transaction. No chest/sign/inventory tampering, destructive leaf carving, chunk scars, teleport loops or base replication added.
+- 42 authored automated tests, including persistence round-trip, cooldown boundary, world isolation, tier exhaustion, and visibility-aware F7 behavior. Packaging and bytecode verification do not establish gameplay/GPU stability.

@@ -26,12 +26,13 @@ public class SceneIntegrationTest {
             tick(world,player);AmbientHooks.previewKey(true);AmbientHooks.nextSound(true);AmbientHooks.previewKey(false);
             for(int i=0;i<75;i++)tick(world,player);
             Object figure=worldType.getField("figure").get(world);assertNotNull("director scene did not spawn",figure);assertEquals(1,worldType.getField("spawned").getInt(world));
-            double before=playerType.getField("aj").getDouble(figure);for(int i=0;i<12;i++)tick(world,player);double after=playerType.getField("aj").getDouble(figure);assertTrue("unwatched figure never moved",after<before);
+            double before=playerType.getField("aj").getDouble(figure);assertTrue("spawn must begin behind the protected view cone",before<0);for(int i=0;i<12;i++)tick(world,player);double after=playerType.getField("aj").getDouble(figure);assertTrue("unwatched figure never moved",Math.abs(after)<Math.abs(before));
             double fx=playerType.getField("ah").getDouble(figure),fz=playerType.getField("aj").getDouble(figure);playerType.getField("an").setFloat(player,(float)Math.toDegrees(Math.atan2(-fx,fz)));
             // The pitch correction aims at its torso, not over/under the target.
             playerType.getField("ao").setFloat(player,(float)Math.toDegrees(Math.atan2(.62,Math.hypot(fx,fz))));
             for(int i=0;i<8;i++)tick(world,player);double frozen=playerType.getField("aj").getDouble(figure);assertEquals(after,frozen,.0001);
-            AmbientHooks.cancelKey(true);tick(world,player);AmbientHooks.cancelKey(false);assertTrue(playerType.getField("removed").getBoolean(figure));
+            AmbientHooks.cancelKey(true);tick(world,player);AmbientHooks.cancelKey(false);assertFalse("F7 must defer removal while watched",playerType.getField("removed").getBoolean(figure));
+            playerType.getField("an").setFloat(player,0);tick(world,player);assertTrue(playerType.getField("removed").getBoolean(figure));
             assertTrue("unbounded reflection/block scan",worldType.getField("reads").getInt(world)<30000);
         }finally{reset();}
     }
@@ -41,14 +42,14 @@ public class SceneIntegrationTest {
             tick(world,player);AmbientHooks.previewKey(true);AmbientHooks.nextSound(true);AmbientHooks.previewKey(false);for(int i=0;i<75;i++)tick(world,player);
             Object figure=wc.getField("figure").get(world);assertNotNull(figure);double fx=pc.getField("ah").getDouble(figure),fz=pc.getField("aj").getDouble(figure);
             pc.getField("an").setFloat(player,(float)Math.toDegrees(Math.atan2(-fx,fz)));pc.getField("ao").setFloat(player,(float)Math.toDegrees(Math.atan2(.62,Math.hypot(fx,fz))));
-            for(int i=0;i<12;i++)tick(world,player);assertTrue(pc.getField("aj").getDouble(figure)<fz);
+            for(int i=0;i<12;i++)tick(world,player);assertTrue(Math.abs(pc.getField("aj").getDouble(figure))<Math.abs(fz));
         }finally{reset();}
     }
     @Test public void obstacleEndsMovementRatherThanWalkingThroughBlocks()throws Exception{
         reset();Loader loader=new Loader();Class<?> wc=loader.loadClass("cj"),pc=loader.loadClass("jx");Object world=wc.getConstructor().newInstance(),player=pc.getConstructor().newInstance();
         try{
             tick(world,player);AmbientHooks.previewKey(true);AmbientHooks.nextSound(true);AmbientHooks.previewKey(false);for(int i=0;i<75;i++)tick(world,player);
-            Object figure=wc.getField("figure").get(world);assertNotNull(figure);wc.getField("blockedZ").setInt(world,(int)Math.floor(pc.getField("aj").getDouble(figure))-1);
+            Object figure=wc.getField("figure").get(world);assertNotNull(figure);wc.getField("blockedZ").setInt(world,(int)Math.floor(pc.getField("aj").getDouble(figure))+1);
             for(int i=0;i<24;i++)tick(world,player);assertTrue(pc.getField("removed").getBoolean(figure));
         }finally{reset();}
     }

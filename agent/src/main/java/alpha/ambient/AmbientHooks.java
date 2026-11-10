@@ -3,7 +3,7 @@ package alpha.ambient;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-/** Java 8 ambience hooks. Original game model/audio only; no network or file access. */
+/** Java 8 ambience hooks. Original game model/audio only; no network or direct file access. */
 public final class AmbientHooks {
     private static final Map<Object,Pending> pending=new WeakHashMap<Object,Pending>();
     private static final java.util.Random atmosphere=new java.util.Random();
@@ -28,6 +28,9 @@ public final class AmbientHooks {
     private static long driftUntil,textUntil;
     private static String lastEvent="NONE";
     private static final String[] EVENT_NAMES={"WATCHER","CROSSING","FOOTSTEP_ECHO","FALSE_BLOCK","SMOKE","FOG_DRIFT","HUD_DRIFT","SECOND_LOOK","ORBIT_STEPS","DISTANT_KNOCKS","FALSE_DIGGING","LONG_WATCH","BEHIND_YOU","AFTERIMAGE","STALKER_ENCOUNTER","SOUND_LURE","INTERCEPTION","PASS_BY","TURN_AROUND","TREE_LINE","NULL_LURK","LOST_FOOTSTEPS","REPEATER"};
+    static String[] eventNames(){return EVENT_NAMES.clone();}
+    private static final int[] EVENT_TIERS={2,2,1,1,1,1,1,2,2,1,2,2,2,2,2,2,3,2,3,2,3,2,3};
+    private static final int[] EVENT_WEIGHTS={2,2,5,1,1,4,1,2,3,4,3,2,2,1,3,3,2,3,2,3,2,4,2};
     private static long previewFogUntil;
     public static synchronized void previewKey(boolean down){
         if(down&&!keyHeld){forceEvent=true;}
@@ -58,9 +61,10 @@ public final class AmbientHooks {
         boolean preview=forceEvent;forceEvent=false;quietTicks=20*intervalSeconds(activeTicks);
         echoes=0;
         int index=preview?previewCursor++%EVENT_NAMES.length:0;
-        int kind=preview?(index<9?14+index:index-9):(atmosphere.nextInt(100)<65?14+atmosphere.nextInt(9):atmosphere.nextInt(14));
-        if(!preview&&kind>=14&&Scene.sheltered)kind=atmosphere.nextBoolean()?15:22;
-        else if(!preview&&(kind==16||kind==21)&&!Scene.moving)kind=14;
+        AmbientHooksState state=Scene.world==null?null:AmbientHooksState.of(Scene.world);
+        int kind=preview?(index<9?14+index:index-9):state==null?-1:state.choose(EVENT_NAMES,EVENT_TIERS,EVENT_WEIGHTS,atmosphere);
+        if(kind<0)return null; // Exhaustion means quiet, never bypass the repeat lock.
+        if(!preview)state.mark(EVENT_NAMES[kind]);
         replaceScene=true;
         lastEvent=EVENT_NAMES[kind];
         particle=kind==4||kind==13;
@@ -85,7 +89,7 @@ public final class AmbientHooks {
     static int eventCount(){return EVENT_NAMES.length;}
     static String lastEventName(){return lastEvent;}
     public static int textOffset(int coordinate){return activeTicks<textUntil?coordinate+((activeTicks/40)%2==0?1:2):coordinate;}
-    public static synchronized boolean takeParticle(){boolean result=particle;particle=false;return result;}
+    public static synchronized boolean takeParticle(){particle=false;return false;}
     public static double soundX(float yaw){return fixedAudio?cueX-Scene.px:-Math.sin(Math.toRadians(yaw+audioAngle))*audioRadius;}
     public static double soundZ(float yaw){return fixedAudio?cueZ-Scene.pz:Math.cos(Math.toRadians(yaw+audioAngle))*audioRadius;}
     public static double visualX(float yaw){return -Math.sin(Math.toRadians(yaw+32))*9;}
@@ -97,7 +101,7 @@ public final class AmbientHooks {
         static Object world,player,figure;
         static java.lang.reflect.Method block,loaded,spawn,position,dead;
         static java.lang.reflect.Field x,y,z,yaw,pitch;
-        static boolean disabled,seen,moving,sheltered;
+        static boolean disabled,seen,moving,sheltered,pendingRemoval;
         static int age,life,returns,returnDelay,placement,ticks;
         static double fx,fy,fz,previousX,previousZ,px,py,pz;
         static float facing,lookingPitch,lastFacing;
@@ -111,14 +115,15 @@ public final class AmbientHooks {
         static void tick(Object nextWorld,Object nextPlayer){
             if(disabled)return;
             try{
-                if(nextWorld==null||nextPlayer==null){cancel();world=null;player=null;return;}
-                if(world!=nextWorld){cancel();world=nextWorld;player=nextPlayer;
+                if(nextWorld==null||nextPlayer==null){forceRemove();cancel();world=null;player=null;return;}
+                if(world!=nextWorld){forceRemove();cancel();world=nextWorld;player=nextPlayer;activeTicks=AmbientHooksState.of(world).ticks;quietTicks=20*intervalSeconds(activeTicks);
                     ClassLoader loader=world.getClass().getClassLoader();Class<?> wc=Class.forName("cj",false,loader),entity=Class.forName("jx",false,loader);
                     block=wc.getMethod("a",int.class,int.class,int.class);loaded=wc.getDeclaredMethod("h",int.class,int.class);loaded.setAccessible(true);spawn=wc.getMethod("a",entity);
                     position=entity.getMethod("b",double.class,double.class,double.class,float.class,float.class);dead=entity.getMethod("D");
                     x=entity.getField("ah");y=entity.getField("ai");z=entity.getField("aj");yaw=entity.getField("an");pitch=entity.getField("ao");previousX=x.getDouble(player);previousZ=z.getDouble(player);
                 }
-                player=nextPlayer;px=x.getDouble(player);py=y.getDouble(player);pz=z.getDouble(player);facing=yaw.getFloat(player);lookingPitch=pitch.getFloat(player);ticks++;
+                player=nextPlayer;px=x.getDouble(player);py=y.getDouble(player);pz=z.getDouble(player);facing=yaw.getFloat(player);lookingPitch=pitch.getFloat(player);ticks++;AmbientHooksState.of(world).tick();
+                if(pendingRemoval){remove();if(pendingRemoval)return;}
                 moving=Math.hypot(px-previousX,pz-previousZ)>.025;previousX=px;previousZ=pz;
                 trail[trailCursor][0]=px;trail[trailCursor][1]=py;trail[trailCursor][2]=pz;trailCursor=(trailCursor+1)%trail.length;trailCount=Math.min(trail.length,trailCount+1);
                 if(ticks%20==0){sheltered=read((int)Math.floor(px),(int)Math.floor(py)+3,(int)Math.floor(pz))!=0;groundMaterial=read((int)Math.floor(px),(int)Math.floor(py)-1,(int)Math.floor(pz));}
@@ -187,10 +192,22 @@ public final class AmbientHooks {
             return rayVisible&&dot>.965;
         }
         static boolean lineClear(double ax,double ay,double az,double bx,double by,double bz)throws Exception{
-            int steps=Math.min(64,Math.max(1,(int)Math.ceil(Math.sqrt((ax-bx)*(ax-bx)+(ay-by)*(ay-by)+(az-bz)*(az-bz))*1.5)));
-            for(int i=1;i<steps;i++){double t=i/(double)steps;int id=read((int)Math.floor(ax+(bx-ax)*t),(int)Math.floor(ay+(by-ay)*t),(int)Math.floor(az+(bz-az)*t));
+            int vx=(int)Math.floor(ax),vy=(int)Math.floor(ay),vz=(int)Math.floor(az);
+            int ex=(int)Math.floor(bx),ey=(int)Math.floor(by),ez=(int)Math.floor(bz);
+            double dx=bx-ax,dy=by-ay,dz=bz-az;
+            int sx=dx>0?1:-1,sy=dy>0?1:-1,sz=dz>0?1:-1;
+            double tx=dx==0?Double.POSITIVE_INFINITY:((dx>0?vx+1:vx)-ax)/dx;
+            double ty=dy==0?Double.POSITIVE_INFINITY:((dy>0?vy+1:vy)-ay)/dy;
+            double tz=dz==0?Double.POSITIVE_INFINITY:((dz>0?vz+1:vz)-az)/dz;
+            for(int budget=0;budget<256;budget++){
+                if(vx==ex&&vy==ey&&vz==ez)return true;
+                double t=Math.min(tx,Math.min(ty,tz));
+                if(tx==t){vx+=sx;tx+=Math.abs(1/dx);}
+                if(ty==t){vy+=sy;ty+=Math.abs(1/dy);}
+                if(tz==t){vz+=sz;tz+=Math.abs(1/dz);}
+                int id=read(vx,vy,vz);
                 if(id!=0&&id!=8&&id!=9&&id!=20&&id!=37&&id!=38&&id!=39&&id!=40&&id!=50&&id!=78)return false;
-            }return true;
+            }return false; // Unloaded or over-budget paths fail closed.
         }
         static int read(int bx,int by,int bz)throws Exception{
             if(by<0||by>127||!((Boolean)loaded.invoke(world,bx>>4,bz>>4)))return -1;
@@ -215,7 +232,23 @@ public final class AmbientHooks {
             fx=nx;fy=ny;fz=nz;float rotation=(float)Math.toDegrees(Math.atan2(-(px-fx),pz-fz));
             position.invoke(figure,fx,fy,fz,rotation,0f);return true;
         }
-        static void remove()throws Exception{if(figure!=null){dead.invoke(figure);figure=null;rayVisible=false;System.out.println("[Alpha scene] watcher removed");}}
+        // A deliberately oversized view cone protects the entire normal Alpha frustum,
+        // including the model's extremities. Transparent/unknown blocks never hide it.
+        static boolean protectedAt(double bx,double by,double bz)throws Exception{
+            for(double ox:new double[]{-.5,.5})for(double oy:new double[]{0,1,2})for(double oz:new double[]{-.5,.5}){
+                double dx=bx+ox-px,dy=by+oy-(py+1.62),dz=bz+oz-pz;
+                double len=Math.sqrt(dx*dx+dy*dy+dz*dz);if(len<2)return true;
+                double yr=Math.toRadians(facing),pr=Math.toRadians(lookingPitch);
+                double dot=(-Math.sin(yr)*Math.cos(pr)*dx-Math.sin(pr)*dy+Math.cos(yr)*Math.cos(pr)*dz)/len;
+                // No occlusion exemption yet: conservatively protect through walls too.
+                if(dot>-.25)return true;
+            }return false;
+        }
+        static void forceRemove()throws Exception{if(figure!=null){dead.invoke(figure);figure=null;}pendingRemoval=false;rayVisible=false;}
+        static void remove()throws Exception{
+            if(figure!=null&&protectedAt(fx,fy,fz)){pendingRemoval=true;return;}
+            forceRemove();
+        }
         static void spawnFigure(double px,double py,double pz,float facing)throws Exception{
             spawnAt(lastEvent.equals("BEHIND_YOU")?155:(placement++%2==0?28:-38),scenePreview?20:27,scenePreview?Math.max(160,sceneLifetime):sceneLifetime);
         }
@@ -225,13 +258,13 @@ public final class AmbientHooks {
             return false;
         }
         static void spawnAt(double relative,double distance,int lifetime)throws Exception{
-            remove();
-            for(int offset:new int[]{0,12,-12,25,-25,40,-40}){
+            remove();if(figure!=null)return;
+            for(int offset:new int[]{0,12,-12,25,-25,40,-40,150,-150,180}){
                 double angle=Math.toRadians(facing+relative+offset);double bx=Math.floor(px-Math.sin(angle)*distance)+.5,bz=Math.floor(pz+Math.cos(angle)*distance)+.5;
                 if(director.active()&&director.mode()==AmbientHooksDirector.Mode.TREE_LINE&&!treeNear(bx,bz,py))continue;
                 double by=Double.NaN;
                 for(int band:new int[]{0,4,-4,8,-8}){by=standY(bx,bz,py-1+band);if(!Double.isNaN(by))break;}
-                if(Double.isNaN(by))continue;
+                if(Double.isNaN(by)||protectedAt(bx,by,bz))continue;
                 Object candidate=Class.forName("AlphaWatcher",true,world.getClass().getClassLoader()).getConstructor(Class.forName("cj",false,world.getClass().getClassLoader())).newInstance(world);
                 fx=bx;fy=by;fz=bz;position.invoke(candidate,fx,fy,fz,(float)Math.toDegrees(Math.atan2(-(px-fx),pz-fz)),0f);
                 if((Boolean)spawn.invoke(world,candidate)){figure=candidate;age=0;seen=false;life=lifetime;rayVisible=lineClear(px,py+1.62,pz,fx,fy+1,fz);System.out.println("[Alpha scene] watcher spawned; preview="+scenePreview+" director="+director.active());return;}
@@ -266,13 +299,7 @@ public final class AmbientHooks {
         pending.put(chunk,new Pending(blocks,x,z,(int)((hash>>>9)%4)));
     }
     public static synchronized void ready(Object chunk){
-        Pending p=pending.get(chunk);if(p==null)return;
-        if(++p.attempts>8){pending.remove(chunk);return;}
-        int natural=0;
-        for(int i=0;i<p.blocks.length;i++)if((p.blocks[i]&255)==1)natural++;
-        if(natural<128)return; // Constructors can run before terrain generation fills the array.
-        pending.remove(chunk); // At most one attempt on this chunk object; no tick-time world editing.
-        apply(p.blocks,p.x,p.z,p.kind);
+        pending.remove(chunk); // Terrain edits disabled until visibility-aware transaction support.
     }
     static long mix(int x,int z){
         long n=x*341873128712L+z*132897987541L+0x5b7c913dL;

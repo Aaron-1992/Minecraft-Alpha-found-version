@@ -56,6 +56,27 @@ public final class OfflinePatcher {
         reader.accept(new ClassVisitor(Opcodes.ASM9,writer){
             public MethodVisitor visitMethod(int access,String method,String desc,String signature,String[] exceptions){
                 MethodVisitor mv=super.visitMethod(access,method,desc,signature,exceptions);
+                if(name.equals("cj")&&(method.equals("<init>")||method.equals("m")&&desc.equals("()V"))){
+                    final boolean saving=method.equals("m");
+                    return new MethodVisitor(Opcodes.ASM9,mv){
+                        String literal;
+                        public void visitLdcInsn(Object value){
+                            if(saving&&"LastPlayed".equals(value)){
+                                super.visitVarInsn(Opcodes.ALOAD,0);super.visitVarInsn(Opcodes.ALOAD,1);
+                                super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksState","save","(Ljava/lang/Object;Ljava/lang/Object;)V",false);
+                            }
+                            literal=value instanceof String?(String)value:null;super.visitLdcInsn(value);
+                        }
+                        public void visitMethodInsn(int op,String owner,String called,String descriptor,boolean itf){
+                            super.visitMethodInsn(op,owner,called,descriptor,itf);
+                            if(!saving&&"Data".equals(literal)&&owner.equals("hc")&&called.equals("k")&&descriptor.equals("(Ljava/lang/String;)Lhc;")){
+                                super.visitInsn(Opcodes.DUP);super.visitVarInsn(Opcodes.ALOAD,0);super.visitInsn(Opcodes.SWAP);
+                                super.visitMethodInsn(Opcodes.INVOKESTATIC,"alpha/ambient/AmbientHooksState","load","(Ljava/lang/Object;Ljava/lang/Object;)V",false);
+                            }
+                            literal=null;
+                        }
+                    };
+                }
                 if(name.equals("bb")&&method.equals("run")&&desc.equals("()V")){
                     // The old HTTP listing fails before Alpha registers cached sounds.
                     mv.visitCode();mv.visitVarInsn(Opcodes.ALOAD,0);mv.visitVarInsn(Opcodes.ALOAD,0);

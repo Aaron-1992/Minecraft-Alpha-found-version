@@ -48,7 +48,7 @@ public class AmbientAgentTest {
             if(sound!=null){events++;assertTrue(java.util.Arrays.asList("step.grass","step.stone","step.gravel","random.pop","step.wood","random.click").contains(sound));}
         }
         System.clearProperty("alpha.scheduledSounds");
-        assertTrue(events>0&&events<=700);
+        assertTrue("No world bound: natural events must stay silent",events==0);
         assertTrue(Math.hypot(AmbientHooks.soundX(80),AmbientHooks.soundZ(80))>=6);
     }
     @Test public void previewIsEdgeTriggeredAndEscalationIsBounded(){
@@ -79,7 +79,7 @@ public class AmbientAgentTest {
         outer:for(int a=4;a<200;a++)for(int c=4;c<200;c++){long h=AmbientHooks.mix(a,c);if((h&127)==0&&((h>>>9)%4)==0){x=a;z=c;found=true;break outer;}}
         assertTrue(found);byte[] b=terrain();Object object=fixture.getConstructor(Object.class,byte[].class,int.class,int.class).newInstance(new Object(),b,x,z);
         fixture.getMethod("initialize").invoke(object);
-        assertEquals(1,fixture.getField("calls").getInt(object));assertEquals(0,b[index(8,52,8)]);
+        assertEquals(1,fixture.getField("calls").getInt(object));assertEquals(1,b[index(8,52,8)]);
         assertEquals(52,changed[7]&255); // Java 8 classfile, not the setup app's Java 17.
     }
     @Test public void transformedFogRetainsOriginalMethod()throws Exception{
