@@ -4,14 +4,14 @@ Set-Location (Split-Path $PSScriptRoot -Parent)
 
 $InputDir = "target/windows-input"
 $ImageDir = "target/windows-image"
-$App = "$ImageDir/AlphaDesktop"
+$App = "$ImageDir/MinecraftAlphaLauncher"
 New-Item -ItemType Directory -Force $InputDir, $ImageDir, "release" | Out-Null
 Copy-Item "target/alpha-desktop-$Version.jar" $InputDir
 
 # This is a real Windows launcher and a private Java runtime, not a renamed JAR.
-& jpackage --type app-image --name AlphaDesktop --app-version $Version `
+& jpackage --type app-image --name MinecraftAlphaLauncher --app-version $Version `
     --input $InputDir --main-jar "alpha-desktop-$Version.jar" --main-class AlphaDesktop `
-    --dest $ImageDir --vendor "Alpha Desktop" --description "Unofficial Minecraft Alpha a1.0.16 launcher" `
+    --dest $ImageDir --vendor "Minecraft Alpha Launcher" --description "Unofficial Minecraft Alpha a1.0.16 launcher" `
     --add-modules "java.desktop,java.prefs,java.logging,java.xml,java.naming,java.instrument,jdk.unsupported" `
     --jlink-options "--strip-debug --no-header-files --no-man-pages" `
     --java-options "-Dfile.encoding=UTF-8"
@@ -34,7 +34,7 @@ if ($LASTEXITCODE -ne 0) { throw "Bundled Java / Vorbis smoke test failed" }
 if ($LASTEXITCODE -ne 0) { throw "Packaged Java 8 / isolated-agent preflight failed" }
 & "$App/runtime/bin/java.exe" "-Djava.awt.headless=true" -jar "$App/app/alpha-desktop-$Version.jar" --check-recovery
 if ($LASTEXITCODE -ne 0) { throw "Packaged no-agent recovery profile / Java 8 configuration check failed" }
-$Process = Start-Process -FilePath "$App/AlphaDesktop.exe" -ArgumentList "--check-runtime" -PassThru
+$Process = Start-Process -FilePath "$App/MinecraftAlphaLauncher.exe" -ArgumentList "--check-runtime" -PassThru
 if (-not $Process.WaitForExit(30000)) {
     $Process.Kill()
     throw "Windows EXE did not exit from runtime smoke test"
@@ -47,17 +47,17 @@ $Docs = "target/portable-docs/alpha-desktop-$Version"
 Copy-Item "$Docs/third-party" "$App/third-party" -Recurse
 Copy-Item README.md, RELEASE_NOTES.md $App
 
-# The portable zip contains AlphaDesktop.exe + its runtime. Keep them together.
-Compress-Archive -Path $App -DestinationPath "release/AlphaDesktop-$Version-windows-x64-portable.zip" -Force
+# The portable zip contains MinecraftAlphaLauncher.exe + its runtime. Keep them together.
+Compress-Archive -Path $App -DestinationPath "release/MinecraftAlphaLauncher-windows-x64-portable.zip" -Force
 
 # Hosted Windows 2022 runners provide WiX 3 for jpackage's native installer.
 if ($env:WIX) { $env:Path = "$env:WIX/bin;$env:Path" }
-& jpackage --type exe --name AlphaDesktop --app-version $Version --app-image $App `
-    --dest release --vendor "Alpha Desktop" --description "Unofficial Minecraft Alpha a1.0.16 launcher" `
+& jpackage --type exe --name MinecraftAlphaLauncher --app-version $Version --app-image $App `
+    --dest release --vendor "Minecraft Alpha Launcher" --description "Unofficial Minecraft Alpha a1.0.16 launcher" `
     --win-per-user-install --win-dir-chooser --win-menu --win-shortcut `
     --win-upgrade-uuid "d5649b47-8517-4e7f-a89d-fd85396f9f50"
 if ($LASTEXITCODE -ne 0) { throw "Windows installer packaging failed" }
-$Installer = "release/AlphaDesktop-$Version.exe"
+$Installer = "release/MinecraftAlphaLauncher-$Version.exe"
 if (-not (Test-Path $Installer)) { throw "Windows EXE installer missing" }
 # Confirm this is a Windows PE executable, not just a file with an .exe extension.
 $Bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $Installer))
