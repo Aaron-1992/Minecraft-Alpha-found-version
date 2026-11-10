@@ -1,4 +1,4 @@
-# Alpha Desktop 0.10.0
+# Alpha Desktop 0.11.0
 
 Native launcher for a locally patched copy of the user's installed Minecraft Alpha a1.0.16. No browser, generated assets, redistributed Minecraft client or replacement login system.
 
@@ -14,37 +14,26 @@ No official-launcher setup menu, Recovery-profile creation menu, old compatibili
 
 Requires your installed `versions/a1.0.16/a1.0.16.jar`, matching JSON and previously installed libraries/natives. No automatic dependency downloads. Accepts only inspected client SHA-256 `fd14110691b14ea51f9320a949e2b3c1855e38af2668bf4e743c19b08de00234`. Your original JAR is never overwritten. Local single-player only; no account/token reading or authenticated multiplayer.
 
-This pass inspected From The Fog and Man From The Fog Reimagined documentation/selected encounter logic. The new implementation is original; none of their code or assets is included. See `docs/ENCOUNTER_RESEARCH.md` in the source for references and boundaries.
+Four new encounter modes join the reactive director; this is now nine encounter modes plus fourteen ambient variations. These are original folklore-inspired scenarios, not literal recreations of named characters or other mods. All figures still reuse the original Alpha humanoid model with black tint. No new skins, generated assets or borrowed mod recordings.
 
-## Five encounter modes with actual state transitions
+## New encounters
 
-**Cue → Observe → Advance → Retreat → Aftermath → Cooldown.** Episodes respond to player position, yaw/pitch, sampled wall occlusion and investigation distance. They end after a bounded duration even if ignored.
+- **Treeline / Herobrine-style sighting:** placement requires an actual nearby log/trunk on suitable already-loaded terrain. Direct observation for eight ticks makes the figure vanish rather than advance. Up to two repositioned returns are possible. No leaf removal, tree damage or new tree generation; treeless terrain can skip the scene.
+- **Null-inspired lurker:** a farther-off-angle black figure disappears under sustained direct observation. It never advances and does not return during that encounter. This is not a screen blackout or damage effect.
+- **Lost footsteps:** original footstep sounds are emitted from recorded positions along your recent route, rather than following the camera. The route buffer is in memory and capped at 40 active ticks. Moving produces cues; a sufficiently sharp turn after the opening delay can trigger a separate distant sighting. If you ignore it, a bounded timeout ends/progresses it. Ground under the player selects an existing stone/grass/wood/sand/gravel sound family.
+- **Repetition / Far Lands-style unease:** four identical anchored cues at fixed intervals, accompanied by temporary small HUD-position and fog-distance drift. No entity is spawned. This is a repetition illusion, not real Far Lands generation, broken geometry or file corruption.
 
-- **Stalker encounter:** a quiet cue precedes a distant figure. It can advance in ground-checked steps while you are not directly observing it. Looking at it stops the advance; sustained observation makes it retreat. One delayed repositioned return is possible.
-- **Sound lure:** cues originate at a fixed world location, not attached to your camera. Approaching that location can trigger a separate distant sighting. If ignored, a timeout still progresses/ends the encounter.
-- **Interception:** an ahead-of-view encounter selected naturally while moving. The figure withdraws rather than attacking or blocking the player.
-- **Pass-by:** a brief sideways retreat scene instead of a stationary timer-only apparition.
-- **Turn around:** an initially behind-view encounter with the same observation/retreat behavior and one possible return.
+## Controls and behavior
 
-New encounter modes have a 65% natural selection weight; the existing 14 ambient variations remain. Sheltered positions favor the lure; stationary players do not naturally select interception. Ordinary gaps still escalate from 2–4 minutes, to 60–150 seconds after 15 active minutes, to 30–90 seconds after 35 minutes. A director episode prevents another natural event from interrupting it; cooldown/maximum duration keep it bounded.
+F6 previews the nine director modes first: Stalk → Lure → Interception → Pass-by → Turn-around → Treeline → Null lurk → Lost footsteps → Repeater. The fourteen older variations follow. Release between presses, then wait for the encounter to develop. Move during Lost footsteps; the treeline encounter needs trees. F7 cancels active/pending scenes, as before.
 
-## Controls and stronger diagnostics
+The nine director modes share the existing 65% natural director-selection weight, rather than stacking more independent timers. Sheltered locations favor lure or repetition; movement-dependent natural selections are redirected when stationary. Existing escalation/cooldowns, minimum-distance checks, sampled gaze/occlusion, grounded movement, original-sound loading, 60 FPS cap and latest-session logs remain.
 
-- **F6** now previews the five new encounters first, then the previous 14 events. Press once, release, and wait: most previews begin with cues and show a figure after roughly 1.3 seconds. Lure previews react to investigation or can take about eight seconds. Repeated presses replace the current episode, rather than showing all its stages.
-- **F7** cancels the scene, pending director cues/extra echoes and transient HUD/fog effects. It leaves at least 20 seconds before the next naturally scheduled event; it is not a permanent off switch.
-- Logs record selected mode, phase transitions, anchored sound requests, actual spawn/skip/removal, blocked movement and cancellation. Session metadata records the enabled director and controls.
+No attacks, jumpscares, chat hints, control lockout, leaf stripping, player teleportation, save damage, desktop effects or deliberate crashes. New effects are transient; previously implemented procedural terrain edits persist as before.
 
-## Ground and sight checks
+## Verification and limits
 
-Placement searches multiple candidate positions, checks footprint/head clearance and refuses unloaded chunks. Movement samples ground and clearance; walls/ledges terminate the movement instead of being crossed or edited. A sampled visibility test plus yaw AND pitch replaces the old yaw-only "seen" test. No intended approach within 14 blocks. This is a bounded encounter controller, **not full Minecraft pathfinding** or combat AI.
-
-Black tint remains scoped to the original model and render-state cleanup. All audio uses existing original recordings and normal volume/mute; fixed-position cues use a modest fixed gain, not escalating loudness. Missing recordings still cannot play. No new assets, leaf stripping, flashing, chat hints, save corruption, player teleportation or deliberate crashes. Existing terrain anomalies persist as before; watcher/director effects are transient. FPS cap, sort compatibility and latest-session-only reports remain.
-
-## Verification
-
-Added seven pure-director tests and five adapter integration tests using authored API stand-ins. These exercise observation freeze, advance/retreat, lure investigation/timeout, approach removal, missing figures, termination/cooldown, fixed sound positions, wall occlusion, obstacles, unloaded-chunk refusal and F7 cleanup. Existing watcher rendering-cleanup/serialization fixtures and launcher tests remain.
-
-Automated/bytecode/Windows package checks are not actual gameplay, sound availability, watcher visibility or AMD-driver verification. If a driver reset returns, stop retrying and export the latest session report.
+39 mod/director/adapter tests include new rules for bounded treeline returns, Null's non-advancing behavior, movement/turn reaction, exactly four repetition cues without a figure, actual tree-required placement, and recorded-route sound origins. Test fixtures are authored stand-ins, not Minecraft source. Java 8 and Windows packaging checks are retained. Automated and bytecode checks do not prove original-game audiovisual quality, watcher visibility, resource availability or graphics-driver stability. If an AMD timeout returns, stop retrying and export the latest session report.
 
 
 ## Current-session diagnostics, not stale 0.5.2 logs

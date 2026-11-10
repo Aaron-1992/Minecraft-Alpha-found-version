@@ -27,7 +27,7 @@ public final class AmbientHooks {
     private static boolean sceneRequest,sceneCrossing,scenePreview;
     private static long driftUntil,textUntil;
     private static String lastEvent="NONE";
-    private static final String[] EVENT_NAMES={"WATCHER","CROSSING","FOOTSTEP_ECHO","FALSE_BLOCK","SMOKE","FOG_DRIFT","HUD_DRIFT","SECOND_LOOK","ORBIT_STEPS","DISTANT_KNOCKS","FALSE_DIGGING","LONG_WATCH","BEHIND_YOU","AFTERIMAGE","STALKER_ENCOUNTER","SOUND_LURE","INTERCEPTION","PASS_BY","TURN_AROUND"};
+    private static final String[] EVENT_NAMES={"WATCHER","CROSSING","FOOTSTEP_ECHO","FALSE_BLOCK","SMOKE","FOG_DRIFT","HUD_DRIFT","SECOND_LOOK","ORBIT_STEPS","DISTANT_KNOCKS","FALSE_DIGGING","LONG_WATCH","BEHIND_YOU","AFTERIMAGE","STALKER_ENCOUNTER","SOUND_LURE","INTERCEPTION","PASS_BY","TURN_AROUND","TREE_LINE","NULL_LURK","LOST_FOOTSTEPS","REPEATER"};
     private static long previewFogUntil;
     public static synchronized void previewKey(boolean down){
         if(down&&!keyHeld){forceEvent=true;}
@@ -58,9 +58,9 @@ public final class AmbientHooks {
         boolean preview=forceEvent;forceEvent=false;quietTicks=20*intervalSeconds(activeTicks);
         echoes=0;
         int index=preview?previewCursor++%EVENT_NAMES.length:0;
-        int kind=preview?(index<5?14+index:index-5):(atmosphere.nextInt(100)<65?14+atmosphere.nextInt(5):atmosphere.nextInt(14));
-        if(!preview&&kind>=14&&Scene.sheltered)kind=15;
-        else if(!preview&&kind==16&&!Scene.moving)kind=14;
+        int kind=preview?(index<9?14+index:index-9):(atmosphere.nextInt(100)<65?14+atmosphere.nextInt(9):atmosphere.nextInt(14));
+        if(!preview&&kind>=14&&Scene.sheltered)kind=atmosphere.nextBoolean()?15:22;
+        else if(!preview&&(kind==16||kind==21)&&!Scene.moving)kind=14;
         replaceScene=true;
         lastEvent=EVENT_NAMES[kind];
         particle=kind==4||kind==13;
@@ -100,10 +100,12 @@ public final class AmbientHooks {
         static boolean disabled,seen,moving,sheltered;
         static int age,life,returns,returnDelay,placement,ticks;
         static double fx,fy,fz,previousX,previousZ,px,py,pz;
-        static float facing,lookingPitch;
+        static float facing,lookingPitch,lastFacing;
+        static int groundMaterial;
         static final AmbientHooksDirector director=new AmbientHooksDirector();
         static final AmbientHooksDirector.Input input=new AmbientHooksDirector.Input();
         static double anchorX,anchorY,anchorZ;
+        static final double[][] trail=new double[40][3];static int trailCursor,trailCount;
         static AmbientHooksDirector.Phase loggedPhase=AmbientHooksDirector.Phase.IDLE;
         static boolean rayVisible;
         static void tick(Object nextWorld,Object nextPlayer){
@@ -118,7 +120,8 @@ public final class AmbientHooks {
                 }
                 player=nextPlayer;px=x.getDouble(player);py=y.getDouble(player);pz=z.getDouble(player);facing=yaw.getFloat(player);lookingPitch=pitch.getFloat(player);ticks++;
                 moving=Math.hypot(px-previousX,pz-previousZ)>.025;previousX=px;previousZ=pz;
-                if(ticks%20==0)sheltered=read((int)Math.floor(px),(int)Math.floor(py)+3,(int)Math.floor(pz))!=0;
+                trail[trailCursor][0]=px;trail[trailCursor][1]=py;trail[trailCursor][2]=pz;trailCursor=(trailCursor+1)%trail.length;trailCount=Math.min(trail.length,trailCount+1);
+                if(ticks%20==0){sheltered=read((int)Math.floor(px),(int)Math.floor(py)+3,(int)Math.floor(pz))!=0;groundMaterial=read((int)Math.floor(px),(int)Math.floor(py)-1,(int)Math.floor(pz));}
                 if(replaceScene){int requested=encounterRequest;boolean legacy=sceneRequest;cancel();encounterRequest=requested;sceneRequest=legacy;replaceScene=false;}
                 if(cancelRequested){cancelRequested=false;cancel();echoes=0;particle=false;textUntil=0;driftUntil=0;previewFogUntil=0;quietTicks=Math.max(quietTicks,400);System.out.println("[Alpha director] cancelled by F7");return;}
                 if(encounterRequest>=0){
@@ -144,18 +147,27 @@ public final class AmbientHooks {
                 System.err.println("[Alpha scene] disabled after "+error.getClass().getSimpleName()+": "+error.getMessage());
             }
         }
-        static void cancel()throws Exception{returns=0;returnDelay=0;sceneRequest=false;encounterRequest=-1;remove();director.reset();loggedPhase=director.phase();cues.clear();}
+        static void cancel()throws Exception{returns=0;returnDelay=0;sceneRequest=false;encounterRequest=-1;remove();director.reset();trailCount=0;trailCursor=0;loggedPhase=director.phase();cues.clear();}
         static void tickDirector()throws Exception{
             input.figurePresent=figure!=null;input.distance=figure==null?100:Math.hypot(fx-px,fz-pz);
             input.observed=figure!=null&&observed();input.visible=figure!=null&&rayVisible;
             input.nearAnchor=Math.hypot(anchorX-px,anchorZ-pz)<8;input.moving=moving;
+            double turn=Math.abs(Math.IEEEremainder(facing-lastFacing,360));lastFacing=facing;input.turned=turn>25;
             AmbientHooksDirector.Action action=director.tick(input);
             if(action.phase!=loggedPhase){System.out.println("[Alpha director] phase="+action.phase+" mode="+director.mode());loggedPhase=action.phase;}
             if(action.remove)remove();
-            if(action.cue){queueCue(action.phase==AmbientHooksDirector.Phase.AFTERMATH?"step.gravel":"step.wood",anchorX,anchorY,anchorZ);}
+            if(action.cue){
+                if(director.mode()==AmbientHooksDirector.Mode.LOST_FOOTSTEPS){
+                    double[] foot=trail[(trailCursor-trailCount+trail.length)%trail.length];
+                    queueCue(groundMaterial==5||groundMaterial==17?"step.wood":groundMaterial==12?"step.sand":groundMaterial==13?"step.gravel":groundMaterial==2?"step.grass":"step.stone",foot[0],foot[1],foot[2]);
+                }else queueCue(action.phase==AmbientHooksDirector.Phase.AFTERMATH?"step.gravel":"step.wood",anchorX,anchorY,anchorZ);
+                if(director.mode()==AmbientHooksDirector.Mode.REPEATER){textUntil=activeTicks+35;driftUntil=activeTicks+240;}
+            }
             if(action.spawn){
                 double angle=director.mode()==AmbientHooksDirector.Mode.INTERCEPT?0:director.mode()==AmbientHooksDirector.Mode.PASS_BY?-42:director.mode()==AmbientHooksDirector.Mode.TURN_AROUND?155:28;
-                if(action.relocate)angle=-55;
+                if(director.mode()==AmbientHooksDirector.Mode.NULL_LURK)angle=55;
+                if(director.mode()==AmbientHooksDirector.Mode.LOST_FOOTSTEPS)angle=-32;
+                if(action.relocate)angle=placement++%2==0?-55:40;
                 spawnAt(angle,scenePreview?21:27,scenePreview?260:400);
             }
             if(action.step&&figure!=null&&ticks%4==0){
@@ -207,10 +219,16 @@ public final class AmbientHooks {
         static void spawnFigure(double px,double py,double pz,float facing)throws Exception{
             spawnAt(lastEvent.equals("BEHIND_YOU")?155:(placement++%2==0?28:-38),scenePreview?20:27,scenePreview?Math.max(160,sceneLifetime):sceneLifetime);
         }
+        static boolean treeNear(double bx,double bz,double by)throws Exception{
+            int y=(int)Math.floor(by);
+            for(int dx:new int[]{-3,0,3})for(int dz:new int[]{-3,0,3})for(int dy=0;dy<=2;dy++)if(read((int)Math.floor(bx)+dx,y+dy,(int)Math.floor(bz)+dz)==17)return true;
+            return false;
+        }
         static void spawnAt(double relative,double distance,int lifetime)throws Exception{
             remove();
             for(int offset:new int[]{0,12,-12,25,-25,40,-40}){
                 double angle=Math.toRadians(facing+relative+offset);double bx=Math.floor(px-Math.sin(angle)*distance)+.5,bz=Math.floor(pz+Math.cos(angle)*distance)+.5;
+                if(director.active()&&director.mode()==AmbientHooksDirector.Mode.TREE_LINE&&!treeNear(bx,bz,py))continue;
                 double by=Double.NaN;
                 for(int band:new int[]{0,4,-4,8,-8}){by=standY(bx,bz,py-1+band);if(!Double.isNaN(by))break;}
                 if(Double.isNaN(by))continue;

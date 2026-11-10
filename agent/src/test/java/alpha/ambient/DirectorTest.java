@@ -39,5 +39,24 @@ public class DirectorTest {
             assertFalse(mode.name(),d.active());
         }
     }
+    @Test public void treelineDisappearsUnderScrutinyAndHasOnlyTwoReturns(){
+        AmbientHooksDirector d=new AmbientHooksDirector();d.begin(AmbientHooksDirector.Mode.TREE_LINE,true);AmbientHooksDirector.Input in=input();int spawns=0;
+        for(int i=0;i<1000;i++){AmbientHooksDirector.Action a=d.tick(in);if(a.spawn){spawns++;in.figurePresent=true;in.observed=true;in.distance=26;}if(a.remove)in.figurePresent=false;}
+        assertEquals(3,spawns);assertFalse(d.active());
+    }
+    @Test public void nullLurkNeverAdvancesAndDoesNotReturn(){
+        AmbientHooksDirector d=new AmbientHooksDirector();d.begin(AmbientHooksDirector.Mode.NULL_LURK,true);AmbientHooksDirector.Input in=input();int spawns=0;
+        for(int i=0;i<600;i++){AmbientHooksDirector.Action a=d.tick(in);assertFalse(a.step);if(a.spawn){spawns++;in.figurePresent=true;in.distance=26;in.observed=true;}if(a.remove)in.figurePresent=false;}
+        assertEquals(1,spawns);assertFalse(d.active());
+    }
+    @Test public void lostFootstepsRespondsToMovementThenTurning(){
+        AmbientHooksDirector d=new AmbientHooksDirector();d.begin(AmbientHooksDirector.Mode.LOST_FOOTSTEPS,true);AmbientHooksDirector.Input in=input();
+        for(int i=0;i<35;i++){in.moving=true;d.tick(in);}in.turned=true;assertTrue(d.tick(in).spawn);
+    }
+    @Test public void repeaterHasFourCuesAndNoFigure(){
+        AmbientHooksDirector d=new AmbientHooksDirector();d.begin(AmbientHooksDirector.Mode.REPEATER,true);AmbientHooksDirector.Input in=input();int cues=0;
+        for(int i=0;i<165;i++){AmbientHooksDirector.Action a=d.tick(in);if(a.cue)cues++;assertFalse(a.spawn);}
+        assertEquals(4,cues);
+    }
     @Test public void resetAbortsWithoutExtraActions(){AmbientHooksDirector d=new AmbientHooksDirector();d.begin(AmbientHooksDirector.Mode.TURN_AROUND,true);d.reset();AmbientHooksDirector.Action a=d.tick(input());assertFalse(d.active());assertFalse(a.spawn||a.cue||a.step);}
 }

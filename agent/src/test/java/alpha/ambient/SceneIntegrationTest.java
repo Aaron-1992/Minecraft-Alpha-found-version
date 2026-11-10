@@ -59,6 +59,26 @@ public class SceneIntegrationTest {
             assertEquals(0,wc.getField("spawned").getInt(world));assertEquals(0,wc.getField("reads").getInt(world));
         }finally{reset();}
     }
+    @Test public void treelineRequiresActualNearbyTrunkWithoutRemovingLeaves()throws Exception{
+        for(boolean trees:new boolean[]{false,true}){
+            reset();Loader loader=new Loader();Class<?> wc=loader.loadClass("cj"),pc=loader.loadClass("jx");Object world=wc.getConstructor().newInstance(),player=pc.getConstructor().newInstance();wc.getField("trees").setBoolean(world,trees);
+            try{
+                tick(world,player);set("previewCursor",5);AmbientHooks.previewKey(true);AmbientHooks.nextSound(true);AmbientHooks.previewKey(false);for(int i=0;i<70;i++)tick(world,player);
+                if(trees)assertTrue(wc.getField("spawned").getInt(world)>0);else assertEquals(0,wc.getField("spawned").getInt(world));
+            }finally{reset();}
+        }
+    }
+    @Test public void lostFootstepsUsesRecordedRouteRatherThanFollowingTheCamera()throws Exception{
+        reset();Loader loader=new Loader();Class<?> wc=loader.loadClass("cj"),pc=loader.loadClass("jx");Object world=wc.getConstructor().newInstance(),player=pc.getConstructor().newInstance();
+        try{
+            tick(world,player);set("previewCursor",7);AmbientHooks.previewKey(true);AmbientHooks.nextSound(true);AmbientHooks.previewKey(false);boolean heard=false;
+            for(int i=1;i<=40;i++){
+                pc.getField("aj").setDouble(player,i*.15);AmbientHooks.scene(world,player);String cue=AmbientHooks.nextSound(true);
+                if(cue!=null){double current=pc.getField("aj").getDouble(player),origin=current+AmbientHooks.soundZ(0);assertTrue(current-origin>1);heard=true;}
+            }
+            assertTrue(heard);assertEquals(0,wc.getField("spawned").getInt(world));
+        }finally{reset();}
+    }
     @Test public void queuedSoundSourceStaysFixedWhenPlayerMoves()throws Exception{
         reset();Loader loader=new Loader();Class<?> wc=loader.loadClass("cj"),pc=loader.loadClass("jx");Object world=wc.getConstructor().newInstance(),player=pc.getConstructor().newInstance();
         try{

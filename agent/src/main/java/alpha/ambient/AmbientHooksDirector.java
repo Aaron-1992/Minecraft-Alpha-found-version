@@ -2,10 +2,10 @@ package alpha.ambient;
 
 /** Original, deterministic encounter logic. No client classes, graphics, reflection or asset dependencies. */
 public final class AmbientHooksDirector {
-    public enum Mode { STALK, LURE, INTERCEPT, PASS_BY, TURN_AROUND }
+    public enum Mode { STALK, LURE, INTERCEPT, PASS_BY, TURN_AROUND, TREE_LINE, NULL_LURK, LOST_FOOTSTEPS, REPEATER }
     public enum Phase { IDLE, CUE, OBSERVE, ADVANCE, RETREAT, AFTERMATH, COOLDOWN }
     public static final class Input {
-        public boolean observed,visible,figurePresent,nearAnchor,moving;
+        public boolean observed,visible,figurePresent,nearAnchor,moving,turned;
         public double distance=100;
     }
     public static final class Action {
@@ -28,11 +28,17 @@ public final class AmbientHooksDirector {
         if(!active())return a;
         age++;phaseAge++;
         if(age>1200&&phase!=Phase.COOLDOWN){a.remove=true;set(Phase.COOLDOWN);}
-        if(in.figurePresent&&in.distance<14){a.remove=true;returns=1;set(Phase.AFTERMATH);}
+        if(in.figurePresent&&in.distance<14){a.remove=true;returns=3;set(Phase.AFTERMATH);}
         switch(phase){
             case CUE:
                 a.cue=phaseAge==1||phaseAge==23;
-                if(mode==Mode.LURE){
+                if(mode==Mode.REPEATER){
+                    a.cue=phaseAge==1||phaseAge==41||phaseAge==81||phaseAge==121;
+                    if(phaseAge>160)set(Phase.AFTERMATH);
+                }else if(mode==Mode.LOST_FOOTSTEPS){
+                    a.cue=phaseAge%18==0&&in.moving;
+                    if((phaseAge>30&&in.turned)||phaseAge>(preview?180:320)){a.spawn=true;set(Phase.OBSERVE);}
+                }else if(mode==Mode.LURE){
                     // Fixed source is investigated before a figure appears elsewhere.
                     if((phaseAge>25&&in.nearAnchor)||phaseAge>(preview?160:260)){a.spawn=true;set(Phase.OBSERVE);}
                 }else if(phaseAge>(preview?25:60)){a.spawn=true;set(Phase.OBSERVE);}
@@ -40,9 +46,12 @@ public final class AmbientHooksDirector {
             case OBSERVE:
                 if(!in.figurePresent&&phaseAge>10){set(Phase.AFTERMATH);break;}
                 if(in.observed)lookTicks++;else lookTicks=0;
-                if(lookTicks>=24){set(Phase.RETREAT);}
+                if((mode==Mode.TREE_LINE||mode==Mode.NULL_LURK)&&lookTicks>=8){a.remove=true;set(Phase.AFTERMATH);}
+                else if(lookTicks>=24){set(Phase.RETREAT);}
                 else if(mode==Mode.PASS_BY&&phaseAge>12){set(Phase.RETREAT);}
-                else if(phaseAge>(preview?35:70)){set(Phase.ADVANCE);}
+                else if(phaseAge>(preview?35:70)){
+                    if(mode==Mode.TREE_LINE||mode==Mode.NULL_LURK||mode==Mode.LOST_FOOTSTEPS){a.remove=true;set(Phase.AFTERMATH);}else set(Phase.ADVANCE);
+                }
                 break;
             case ADVANCE:
                 if(!in.figurePresent){set(Phase.AFTERMATH);break;}
@@ -63,7 +72,7 @@ public final class AmbientHooksDirector {
                 a.remove=true;
                 if(phaseAge==25)a.cue=true;
                 if(phaseAge>65){
-                    if(returns==0&&(mode==Mode.STALK||mode==Mode.TURN_AROUND)){
+                    if((returns==0&&(mode==Mode.STALK||mode==Mode.TURN_AROUND))||(mode==Mode.TREE_LINE&&returns<2)){
                         returns++;a.spawn=true;a.relocate=true;a.remove=false;set(Phase.OBSERVE);
                     }else set(Phase.COOLDOWN);
                 }
