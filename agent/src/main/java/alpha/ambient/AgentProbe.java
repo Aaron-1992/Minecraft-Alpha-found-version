@@ -19,8 +19,12 @@ public final class AgentProbe {
         }
         if(!found)throw new AssertionError("Probe coordinates unavailable");
         Object chunk=isolated.getConstructor(Object.class,byte[].class,int.class,int.class).newInstance(new Object(),blocks,cx,cz);
+        java.lang.reflect.Field field=AmbientHooks.class.getDeclaredField("pending");field.setAccessible(true);
+        java.util.Map<?,?> pending=(java.util.Map<?,?>)field.get(null);
+        if(!pending.containsKey(chunk))throw new AssertionError("Isolated constructor hook missing");
         isolated.getMethod("initialize").invoke(chunk);
-        if(isolated.getField("calls").getInt(chunk)!=1||blocks[(8<<11)|(8<<7)|52]!=0)throw new AssertionError("Isolated-loader instrumentation failed");
+        if(pending.containsKey(chunk))throw new AssertionError("Isolated ready hook missing");
+        if(isolated.getField("calls").getInt(chunk)!=1||blocks[(8<<11)|(8<<7)|52]!=1)throw new AssertionError("Isolated-loader instrumentation failed");
         System.out.println("ALPHA_AGENT_PREFLIGHT_OK Java="+System.getProperty("java.version")+" isolatedLoader=true bootstrapASM=false");
     }
     private static byte[] resource()throws IOException{
