@@ -45,8 +45,17 @@ final class OriginalResourceCopy {
         }
         return count;
     }
+    static int copyLegacyFolder(Path root,Path destination)throws IOException{
+        int count=0;root=root.toRealPath();destination=destination.toAbsolutePath().normalize();
+        try(var files=Files.walk(root,8)){
+            for(Path source:files.filter(p->Files.isRegularFile(p)&&!Files.isSymbolicLink(p)).toList()){
+                Path logical=logicalPath(root.relativize(source).toString().replace('\\','/'));
+                if(logical!=null&&source.toRealPath().startsWith(root)&&copyFile(source,destination.resolve(logical)))count++;
+            }
+        }return count;
+    }
     private static boolean copyFile(Path source,Path target)throws IOException{
-        if(Files.exists(target))return false;
+        if(Files.exists(target,LinkOption.NOFOLLOW_LINKS))return false;
         Files.createDirectories(target.getParent());Files.copy(source,target);return true;
     }
     private static String sha1(Path source)throws IOException{

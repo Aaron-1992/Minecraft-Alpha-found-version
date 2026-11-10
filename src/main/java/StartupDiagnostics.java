@@ -69,11 +69,11 @@ final class StartupDiagnostics {
         List<Path> candidates=new ArrayList<>();
         for(String name:List.of("launcher_log.txt","launcher_log_microsoft_store.txt","launcher_log_mojang.txt","minecraft-crash.log","minecraft_crash.log"))add(candidates,minecraft.resolve(name));
         add(candidates,minecraft.resolve("logs/latest.log"));addReports(candidates,minecraft.resolve("crash-reports"));
-        for(String directory:List.of("ambient-engine","compatibility-engine","original-engine","recovery-engine")){
+        for(String directory:List.of("ambient-engine","compatibility-engine","original-engine","recovery-engine","patched-engine")){
             Path parent=data.resolve(directory);if(!Files.isDirectory(parent))continue;
             try(var versions=Files.list(parent)){
                 for(Path version:versions.filter(p->Files.isDirectory(p)&&!Files.isSymbolicLink(p)).limit(12).toList()){
-                    for(String name:List.of("logs/latest.log","output-client.log","client.log","minecraft-crash.log","mods/agent-preflight.log"))add(candidates,version.resolve(name));
+                    for(String name:List.of("logs/latest.log","output-client.log","client.log","minecraft-crash.log","mods/agent-preflight.log","direct-launch.log","patch-install.log"))add(candidates,version.resolve(name));
                     addReports(candidates,version.resolve("crash-reports"));
                     try(var files=Files.list(version)){for(Path file:files.filter(p->p.getFileName().toString().matches("hs_err_pid[0-9]+\\.log")).limit(3).toList())add(candidates,file);}
                 }

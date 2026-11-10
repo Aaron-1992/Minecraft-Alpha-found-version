@@ -8,16 +8,17 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 /** Native setup for using the user's real Alpha engine through their existing launcher. */
 final class OriginalEngineSetup {
     static boolean chooseOriginal()throws Exception{
-        int[] selected={3};
+        int[] selected={4};
         SwingUtilities.invokeAndWait(()->selected[0]=JOptionPane.showOptionDialog(null,
-                "If Minecraft exits with code 1, Recover startup automatically checks local failure logs.\n"
+                "Play patched Alpha starts your local client directly, without the official launcher.\n"
                 +"It can also create a clean, separate original-client test installation with no agents.\n\n"
                 +"Original Alpha setup and the independent custom sandbox remain available.",
                 "Alpha - startup",JOptionPane.DEFAULT_OPTION,JOptionPane.QUESTION_MESSAGE,null,
-                new String[]{"Recover startup","Original Alpha setup","Custom sandbox","Cancel"},"Recover startup"));
-        if(selected[0]==2)return false;
-        if(selected[0]==0)StartupRecovery.open();
-        else if(selected[0]==1)open();
+                new String[]{"Play patched Alpha","Recover startup","Original Alpha setup","Custom sandbox","Cancel"},"Play patched Alpha"));
+        if(selected[0]==3)return false;
+        if(selected[0]==0)DirectAlphaLaunch.open();
+        else if(selected[0]==1)StartupRecovery.open();
+        else if(selected[0]==2)open();
         return true;
     }
     static void open()throws Exception{

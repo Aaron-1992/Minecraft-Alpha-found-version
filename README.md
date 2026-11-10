@@ -2,7 +2,19 @@
 
 ## Still getting exit code 1? Start here
 
-**0.5.2 is a recovery/diagnostic build, not a verified fix for the user's unknown original-client crash.**
+**0.6.0 adds experimental direct single-player launch and install-time patches for the inspected a1.0.16 client.** The user confirmed the separate vanilla Recovery installation runs. Modded gameplay and sound playback on the user's PC are not yet verified.
+
+### Play without the official launcher
+
+Use the full Windows installer or portable distribution (includes Java 8), open AlphaDesktop and select **Play patched Alpha**. `--play-direct` bypasses the startup menu. Select your installed `versions/a1.0.16/a1.0.16.jar` if prompted. Its matching JSON and already downloaded libraries/natives must be present. No official launcher is started during direct play; if dependencies are missing, install that version once using an existing compatible launcher. No downloads or authentication are performed by this tool.
+
+The installer patches a **local copy**, not your original JAR. It accepts only SHA-256 `fd14110691b14ea51f9320a949e2b3c1855e38af2668bf4e743c19b08de00234`, the inspected uploaded client. Unsupported clients fail closed. The resulting game uses no Java agent, ASM, launchwrapper or instrumentation runtime. Our small Java 8 hooks are included in the patched copy. Fog is patched at game call sites, not inside LWJGL. Subtle tunnel/canopy/sand/gravel changes remain optional by choosing this separate modded mode; saved terrain edits persist. No generated media, added sounds, chat events or jump scares.
+
+The same install patches Alpha's resource thread to register existing local recordings **without waiting for the obsolete HTTP resource list**. It copies compatible unmodified legacy recordings from local resources or asset indexes. If none are found, setup offers a legacy resources-folder picker or an explicit soundless test; it does not silently claim audio is fixed. Some recordings may still be absent even if others exist. There is no substitute/generated audio and no sound-pack download.
+
+Direct play is **local single-player**, with a clearly labelled local Player session, not Microsoft authentication. No account files/tokens are read and authenticated multiplayer is not supported. Installed game files are required; this tool does not distribute Minecraft. Data/logs live in `%APPDATA%\AlphaDesktop\patched-engine\a1.0.16`; Recovery, existing worlds and launcher profiles are untouched. **Recover startup → Save diagnostic report** also scans direct-launch logs.
+
+Development inspection used the privately supplied original JAR. Neither that JAR, decompiled Minecraft source nor a prepatched Minecraft binary is committed or released. Installation applies our bytecode changes locally; no decompiler/compiler is needed on the user's PC.
 
 1. Install the Windows EXE and choose **Recover startup**. The native window automatically reads bounded tails of known local launcher/game logs and displays possible failure categories plus redacted excerpts.
 2. Close Minecraft Launcher, then choose **Create clean test installation**.
@@ -22,11 +34,11 @@ The custom software renderer cannot reproduce all of Minecraft Alpha's behavior 
 
 **This mode uses your existing launcher, not direct game execution from our EXE.** Choose vanilla setup or explicitly install experimental environmental changes through a Java runtime agent. Performance and appearance are those of your original Alpha client, subject to its compatibility with your hardware/launcher. There are no benchmarked speedup claims for the original game.
 
-### Windows compatibility rebuild (0.5.2)
+### Windows compatibility rebuild (0.6.0)
 
 The reported exit-code-1 cause is **not known** without its exception. This rebuild addresses startup risks rather than claiming that exact crash has been reproduced.
 
-1. Download **`AlphaDesktop-0.5.2.exe`** from [GitHub Releases](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), install and open AlphaDesktop.
+1. Download **`AlphaDesktop-0.6.0.exe`** from [GitHub Releases](https://github.com/Aaron-1992/Minecraft-Alpha-found-version/releases), install and open AlphaDesktop.
 2. **Close Minecraft Launcher**, choose **Original Alpha → Install compatibility build** and select your installed Alpha JAR if asked.
 3. Setup copies the bundled Java 8 runtime into the isolated compatibility directory and tests the actual packaged agent in a separate JVM **before** writing its launcher profile. Wait for this check; on failure the profile is not enabled and local details remain in `mods/agent-preflight.log`.
 4. Open your usual Minecraft Launcher → Java Edition → Installations → **Alpha Found - Compatibility** → Play. Use this **new** installation, not the previous `Alpha Found` entry. Create a new world.
@@ -84,7 +96,7 @@ Original Minecraft assets are required: a legacy JAR containing `terrain.png`, G
 
 Original title textures (`title/mclogo.png`, `gui/logo.png`, `logo.png`) and cloud masks (`environment/clouds.png`, `clouds.png`) are loaded when present. If absent, clouds are omitted and the title uses the original bitmap font. All block surfaces, font, hotbar, crosshair and recordings come from original assets supplied locally; no generated replacement textures, fonts, logos or synthesized effects are bundled.
 
-### Fallback performance changes in 0.5.2
+### Fallback performance changes in 0.6.0
 
 - Precomputed normalized camera rays instead of per-pixel square roots every frame.
 - Original cloud pixels cached outside the render loop.
@@ -124,20 +136,20 @@ Source builds require **JDK 17+ and Maven 3.8+**:
 ```sh
 mvn -f agent/pom.xml clean package
 mvn clean package
-java -jar target/alpha-desktop-0.5.2.jar
+java -jar target/alpha-desktop-0.6.0.jar
 ```
 
 `build.bat` / `build.sh` also build the shaded JAR with its Ogg decoder. Cross-platform JAR downloads require Java 17+; the Windows EXE bundles Java for this app. The official launcher separately manages the runtime for the original game.
 
 ```sh
 # Prepare the real Alpha installation (native dialogs):
-java -jar target/alpha-desktop-0.5.2.jar --original
+java -jar target/alpha-desktop-0.6.0.jar --original
 
 # Custom sandbox, with native asset dialogs:
-java -jar target/alpha-desktop-0.5.2.jar --prototype
+java -jar target/alpha-desktop-0.6.0.jar --prototype
 
 # Custom sandbox with explicit local asset paths:
-java -jar target/alpha-desktop-0.5.2.jar \
+java -jar target/alpha-desktop-0.6.0.jar \
   --client-jar "/path/to/alpha.jar" \
   --minecraft-dir "/path/to/.minecraft" \
   --sounds "/path/to/original/sound"
@@ -152,7 +164,7 @@ java -jar target/alpha-desktop-0.5.2.jar \
 # Windows: test.bat
 ```
 
-There are **45 main-app headless tests** plus **13 agent unit tests** and fresh-JVM instrumentation/preflight tests on Java 8 and 17, including an isolated child classloader and a check that neither public nor private ASM is bootstrap-visible. Run `mvn -f agent/pom.xml clean package` to execute the agent tests. They check original-version metadata layout, safe launcher JSON round-trips, preservation of other profiles/settings, exact backups, immutable client files, rejection of malformed files, resource-path safety and precomputed-ray equivalence. Fixtures contain configuration/metadata only, not proprietary game code, fabricated texture pixels or recordings.
+There are **45 main-app headless tests plus a direct-launch safety suite** and **17 patcher/agent unit tests** and fresh-JVM instrumentation/preflight tests on Java 8 and 17, including an isolated child classloader and a check that neither public nor private ASM is bootstrap-visible. Run `mvn -f agent/pom.xml clean package` to execute the agent tests. They check original-version metadata layout, safe launcher JSON round-trips, preservation of other profiles/settings, exact backups, immutable client files, rejection of malformed files, resource-path safety and precomputed-ray equivalence. Fixtures contain configuration/metadata only, not proprietary game code, fabricated texture pixels or recordings.
 
 CI also runs **three real AWT fullscreen tests** under Xvfb, builds the executable, verifies Ogg SPI and embedded Java 8-agent packaging and creates the Windows EXE/installer. It smoke-tests the generated Windows launcher, then runs the main distribution's extracted agent with the actual bundled Java 8 runtime in a path containing spaces before publishing. The packaging verifier checks the bootstrap helper contains only hook classes and no unrelocated ASM remains.
 
