@@ -37,7 +37,9 @@ jobs:
           java-version: '17'
           cache: maven
       - name: Test native engine
-        run: ./test.sh
+        run: |
+          ./test.sh
+          python3 -m unittest discover -s tests/python -p 'test_*.py'
       - name: Test real AWT fullscreen transitions
         run: xvfb-run -a java -Djava.awt.headless=false -cp .test-classes FullscreenTests
       - name: Build and test optional Java 8 runtime mod
@@ -171,3 +173,4 @@ jobs:
             --title "Alpha Desktop ${VERSION} — Windows launcher" \
             --notes-file RELEASE_NOTES.md \
             release/*
+          python3 scripts/prune-releases.py --repo "$GITHUB_REPOSITORY" --keep "$TAG" --expected-commit "$GITHUB_SHA"
